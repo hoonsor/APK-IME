@@ -147,6 +147,17 @@ class AbbreviationTest {
         assertEquals("同一個字只出現一次", partial.size, partial.map { it.text }.distinct().size)
     }
 
+    /** 組字區分段顯示，同超注音的「ㄋㄧ ┆ ㄏㄠ」。 */
+    @Test fun composingSegments() {
+        val e = engine()
+        assertEquals(listOf("ㄋㄧ", "ㄏㄠ"), e.type("ㄋㄧㄏㄠ").segments)
+        e.reset()
+        e.type("ㄒㄧㄠㄗㄋㄢ")
+        e.pick("小")
+        assertEquals("小", e.state.segments.first())
+        assertEquals("ㄗㄋㄢ", e.state.segments.drop(1).joinToString(""))
+    }
+
     @Test fun frequencyLearningPromotesChoice() {
         val e = engine()
         e.type("ㄉㄋ")

@@ -134,11 +134,28 @@ class DefaultZhuyinEngine(
 
     private fun refresh(): EngineState {
         val composing = pieces.joinToString("") { it.text } + input
-        state = EngineState(composing, if (input.isEmpty()) emptyList() else search(input.toString()))
+        val candidates = if (input.isEmpty()) emptyList() else search(input.toString())
+        val segs = ArrayList<String>()
+        pieces.forEach { segs.add(it.text) }
+        val first = candidates.firstOrNull()
+        if (first != null) {
+            segs.addAll(first.fragments)
+            val rest = input.substring(first.fragments.sumOf { it.length }.coerceAtMost(input.length))
+            if (rest.isNotEmpty()) segs.add(rest)
+        } else if (input.isNotEmpty()) {
+            segs.add(input.toString())
+        }
+        state = EngineState(composing, candidates, segs)
         return state
     }
 
-    private data class Hit(val entry: LexEntry, val consumed: Int, val chars: Int, val extended: Boolean)
+    private data class Hit(
+        val entry: LexEntry,
+        val consumed: Int,
+        val chars: Int,
+        val extended: Boolean,
+        val frags: List<Fragment>,
+    )
 
     private fun search(text: String): List<Candidate> {
         val parts = Segmenter.partitions(text)
@@ -155,12 +172,12 @@ class DefaultZhuyinEngine(
             val fullKey = buildString { frags.forEach { append(it.core[0]) } }
 
             for (e in lookup(fullKey)) {
-                if (e.matches(frags)) exact.putIfBetter(e, Hit(e, text.length, frags.size, false))
+                if (e.matches(frags)) exact.putIfBetter(e, Hit(e, text.length, frags.size, false, frags))
             }
 
             if (frags.size >= config.extendFromFragments) {
                 for (e in user.longerThan(fullKey) + system.longerThan(fullKey)) {
-                    if (e.matches(frags)) extended.putIfBetter(e, Hit(e, text.length, frags.size, true))
+                    if (e.matches(frags)) extended.putIfBetter(e, Hit(e, text.length, frags.size, true, frags))
                 }
             }
 
@@ -174,7 +191,7 @@ class DefaultZhuyinEngine(
                         val old = prefix[e.text]
                         if (old == null || first.length > old.consumed ||
                             (first.length == old.consumed && score(e) > score(old.entry))
-                        ) prefix[e.text] = Hit(e, first.length, 1, false)
+                        ) prefix[e.text] = Hit(e, first.length, 1, false, listOf(first))
                     }
                 }
             }
@@ -185,7 +202,7 @@ class DefaultZhuyinEngine(
         fun emit(h: Hit) {
             if (!usedText.add(h.entry.text + "#" + h.consumed)) return
             val readings = h.entry.syllables.map { it.toString() }
-            out.add(Candidate(h.entry.text, h.entry.source, readings, h.consumed, h.extended))
+            out.add(Candidate(h.entry.text, h.entry.source, readings, h.consumed, h.extended, h.frags.map { it.toString() }))
         }
 
         exact.values.sortedByDescending { score(it.entry) }.forEach(::emit)

@@ -29,6 +29,11 @@ data class EngineState(
     /** 組字區顯示：已部分選定的字 + 尚未選的注音，例如「小ㄗㄋㄢ」。 */
     val composing: String,
     val candidates: List<Candidate>,
+    /**
+     * 組字區的分段顯示（超注音以虛線分隔每個字的注音）：已選定的字各為一段，
+     * 其餘注音依第一個候選的切分方式分段，例如 ["ㄋㄧ", "ㄏㄠ"]、["小", "ㄗ", "ㄋㄢ"]。
+     */
+    val segments: List<String> = emptyList(),
 ) {
     val isComposing: Boolean get() = composing.isNotEmpty()
 
@@ -46,6 +51,8 @@ data class Candidate(
     val consumed: Int,
     /** true = 延長找詞得到的詞（字數比輸入多）。 */
     val extended: Boolean = false,
+    /** 此候選對應的輸入切分，例如 ["ㄋㄧ", "ㄏㄠ"]。 */
+    val fragments: List<String> = emptyList(),
 )
 
 /** U = 使用者自建、C = 聯絡人（Z7 標示用）。 */
