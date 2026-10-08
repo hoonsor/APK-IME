@@ -164,16 +164,18 @@ class DefaultZhuyinEngine(
                 }
             }
 
-            // 前段吻合：選了之後，剩下的注音繼續選
-            var consumed = 0
-            for (j in 1 until frags.size) {
-                consumed += frags[j - 1].length
-                val sub = frags.subList(0, j)
-                val sig = sub.joinToString("|")
-                if (!seenPrefix.add(sig)) continue
-                val key = fullKey.substring(0, j)
-                for (e in lookup(key)) {
-                    if (e.matches(sub)) prefix.putIfBetter(e, Hit(e, consumed, j, false))
+            // 單字（第一個片段）：選了之後剩下的注音繼續選，依序選完即自動建詞（同超注音）。
+            // 同一個字若可由較長片段吻合（ㄋㄧ 比 ㄋ 明確），保留吃掉較多符號的版本。
+            if (frags.size >= 2) {
+                val first = frags[0]
+                if (seenPrefix.add(first.toString())) {
+                    for (e in lookup(first.core[0].toString())) {
+                        if (!e.matches(listOf(first))) continue
+                        val old = prefix[e.text]
+                        if (old == null || first.length > old.consumed ||
+                            (first.length == old.consumed && score(e) > score(old.entry))
+                        ) prefix[e.text] = Hit(e, first.length, 1, false)
+                    }
                 }
             }
         }
@@ -188,9 +190,10 @@ class DefaultZhuyinEngine(
 
         exact.values.sortedByDescending { score(it.entry) }.forEach(::emit)
         extended.values.sortedByDescending { score(it.entry) }.take(30).forEach(::emit)
-        prefix.values.groupBy { it.consumed }.toSortedMap(reverseOrder()).forEach { (_, hits) ->
-            hits.sortedByDescending { score(it.entry) }.take(config.maxPrefixPerLength).forEach(::emit)
-        }
+        prefix.values
+            .sortedWith(compareByDescending<Hit> { it.consumed }.thenByDescending { score(it.entry) })
+            .take(config.maxSingleChars)
+            .forEach(::emit)
         return out.take(config.maxCandidates)
     }
 

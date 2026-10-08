@@ -74,6 +74,6 @@ data class EngineConfig(
     /** 多段選字自動建詞的最大字數。 */
     val maxAutoPhraseLength: Int = 10,
     val maxCandidates: Int = 120,
-    /** 每種「吃掉長度」的部分匹配候選上限，避免單字候選太多。 */
-    val maxPrefixPerLength: Int = 40,
+    /** 詞候選之後列出的單字候選上限。 */
+    val maxSingleChars: Int = 60,
 )

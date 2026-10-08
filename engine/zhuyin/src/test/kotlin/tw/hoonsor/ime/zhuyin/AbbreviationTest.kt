@@ -31,6 +31,13 @@ class AbbreviationTest {
         return st
     }
 
+    /** 選第一個文字為 text 的候選。 */
+    private fun ZhuyinEngine.pick(text: String): SelectResult {
+        val i = state.candidates.indexOfFirst { it.text == text }
+        assertTrue("找不到候選「$text」：${state.candidates.take(15).map { it.text }}", i >= 0)
+        return select(i)
+    }
+
     /** 期望的詞出現在前 n 個「完整吻合」候選中。 */
     private fun assertInTop(input: String, expected: String, n: Int) {
         val st = engine().type(input)
@@ -82,15 +89,11 @@ class AbbreviationTest {
             override fun onUserPhraseCreated(text: String, readings: List<String>) { created += text }
         })
         e.type("ㄍㄡㄨㄎㄤ")
-        val i1 = e.state.candidates.indexOfFirst { it.text == "購物" }
-        assertTrue("應有前段候選「購物」：${e.state.candidates.take(10)}", i1 >= 0)
-        val r1 = e.select(i1)
-        assertNull(r1.commit)
-        assertEquals("購物ㄎㄤ", r1.state.composing)
-        val i2 = e.state.candidates.indexOfFirst { it.text == "狂" }
-        assertTrue(i2 >= 0)
-        val r2 = e.select(i2)
-        assertEquals("購物狂", r2.commit)
+        assertNull(e.pick("購").commit)
+        assertEquals("購ㄨㄎㄤ", e.state.composing)
+        assertNull(e.pick("物").commit)
+        assertEquals("購物ㄎㄤ", e.state.composing)
+        assertEquals("購物狂", e.pick("狂").commit)
         assertEquals(listOf("購物狂"), created)
 
         // 下次直接出現在第一個
@@ -101,6 +104,47 @@ class AbbreviationTest {
         // 刪除（Z6）
         assertTrue(e.deleteUserPhrase(e.state.candidates.first()))
         assertTrue(e.state.candidates.none { it.text == "購物狂" && it.consumed == 5 })
+    }
+
+    /** 倬描述的超注音行為：ㄋㄧㄏㄠ 依序選單字「妳」「好」→ 自動建立「妳好」。 */
+    @Test fun sequentialSingleCharsCreatePhrase() {
+        val created = ArrayList<String>()
+        val e = engine(object : EngineListener {
+            override fun onUserPhraseCreated(text: String, readings: List<String>) { created += text }
+        })
+        e.type("ㄋㄧㄏㄠ")
+        val single = e.state.candidates.first { it.text == "妳" }
+        assertEquals("「妳」應吃掉 ㄋㄧ 兩個符號", 2, single.consumed)
+        assertNull(e.pick("妳").commit)
+        assertEquals("妳ㄏㄠ", e.state.composing)
+        assertEquals("妳好", e.pick("好").commit)
+        assertEquals(listOf("妳好"), created)
+
+        // 之後 ㄋㄧㄏㄠ 與 ㄋㄏ 都會優先出現「妳好」
+        e.type("ㄋㄧㄏㄠ")
+        assertEquals("妳好", e.state.candidates.first().text)
+        e.reset(); e.type("ㄋㄏ")
+        assertEquals("妳好", e.state.candidates.first().text)
+    }
+
+    /** 直接選整個詞「妳好」不會建詞（只學習頻率）。 */
+    @Test fun pickingWholePhraseDoesNotCreate() {
+        val created = ArrayList<String>()
+        val e = engine(object : EngineListener {
+            override fun onUserPhraseCreated(text: String, readings: List<String>) { created += text }
+        })
+        e.type("ㄋㄏ")
+        assertEquals("妳好", e.pick("妳好").commit)
+        assertTrue(created.isEmpty())
+    }
+
+    /** 詞候選之後是第一個字的單字候選，不再出現「只吃掉一部分的詞」。 */
+    @Test fun partialCandidatesAreSingleChars() {
+        val st = engine().type("ㄋㄧㄏㄠ")
+        val partial = st.candidates.filter { it.consumed < 4 }
+        assertTrue(partial.isNotEmpty())
+        assertTrue("部分候選：${partial.take(10).map { it.text }}", partial.all { it.text.length == 1 })
+        assertEquals("同一個字只出現一次", partial.size, partial.map { it.text }.distinct().size)
     }
 
     @Test fun frequencyLearningPromotesChoice() {
@@ -118,11 +162,12 @@ class AbbreviationTest {
     @Test fun backspaceUndoesPartialSelection() {
         val e = engine()
         e.type("ㄍㄡㄨㄎㄤ")
-        e.select(e.state.candidates.indexOfFirst { it.text == "購物" })
-        e.onBackspace(); e.onBackspace() // 刪掉 ㄤ、ㄎ
-        assertEquals("購物", e.state.composing)
-        e.onBackspace() // 撤銷「購物」，還原注音
-        assertEquals("ㄍㄡㄨ", e.state.composing)
+        e.pick("購")
+        assertEquals("購ㄨㄎㄤ", e.state.composing)
+        repeat(3) { e.onBackspace() } // 刪掉 ㄤ、ㄎ、ㄨ
+        assertEquals("購", e.state.composing)
+        e.onBackspace() // 撤銷「購」，還原注音
+        assertEquals("ㄍㄡ", e.state.composing)
     }
 
     @Test fun associations() {
