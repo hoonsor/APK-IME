@@ -94,6 +94,25 @@ voice-sandbox ──► feature:voice
 
 預計合併工作量：約 1 個工作階段。
 
+## 5.1 鍵盤畫面結構（app，倬確認 2026-10-09）
+
+```
+RootLayout（直向；統一處理 Android 15 底部 inset）
+├ 組字框區（透明，浮在 App 內容上方；以 onComputeInsets 讓 App 不被推高）
+├ SearchStripSlot（預設 GONE；剪貼簿搜尋模式放 resultsStrip）
+├ 頂列（單一列）：工具列 ⇄ 候選列（組字時候選列取代工具列，同超注音）
+│   候選列最前面可顯示「特殊 chip」（剪貼簿最近內容），之後才是聯想詞
+├ PanelContainer（固定高度 = 鍵盤高度 K15）
+│   KEYBOARD（注音／英文／符號子版面）、VOICE、CLIPBOARD
+│   → 每個面板只建立一次，由 PanelController.showPanel(mode) 切換
+└ 浮層：齒輪選單、編輯面板、扇子
+```
+
+- **送字規則**：所有送字（commitText、刪除、選字）一律經過 `ImeController.currentTarget: TextTarget`，
+  預設為包 InputConnection 的 `ImeTextTarget`；剪貼簿搜尋模式會暫時替換。禁止直接呼叫 `currentInputConnection.commitText`。
+- **編輯面板例外**：行首、上下移、開選、全選等需要 InputConnection 專屬功能，經由 `ImeEditor`；搜尋模式下停用編輯面板與 AI 欄。
+- **剪貼簿搜尋模式**：由上到下 resultsStrip → 頂列 → 注音鍵盤；**輸入法整體暫時長高** resultsStrip 的高度（倬確認），按鍵大小不變。
+
 ## 6. 非功能需求（穩定優先）
 
 - 按鍵到畫面回應 < 16ms；候選詞計算 < 30ms（主執行緒以外計算）。
