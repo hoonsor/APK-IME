@@ -31,11 +31,20 @@
             android:name=".settings.SettingsActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@android:style/Theme.Material.NoActionBar">
+            android:theme="@android:style/Theme.Material.NoActionBar"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 字典檢視／編輯（自建詞、英文詞、常用短語） -->
+        <activity
+            android:name=".settings.DictionaryActivity"
+            android:exported="false"
+            android:label="字典"
+            android:theme="@android:style/Theme.Material.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

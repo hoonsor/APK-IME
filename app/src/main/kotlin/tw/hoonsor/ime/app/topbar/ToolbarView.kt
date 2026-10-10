@@ -39,9 +39,9 @@ class ToolbarView(context: Context) : View(context) {
     var simplified = false
         set(v) { field = v; invalidate() }
 
-    private val stroke = strokePaint(Palette.ICON, dp(2.2f))
+    private val stroke = strokePaint(Palette.ICON, dp(2.5f))
     private val fill = fillPaint(Palette.ICON)
-    private val glyph = textPaint(Palette.ICON, dp(24f), bold = true)
+    private val glyph = textPaint(Palette.ICON, dp(30f), bold = true)
     private val activeBg = fillPaint(0xFF2A2A2A.toInt())
     private val bgPaint = fillPaint(Palette.BG)
     private val divider = fillPaint(Palette.DIVIDER)
@@ -65,7 +65,7 @@ class ToolbarView(context: Context) : View(context) {
             val r = slot(i)
             val cx = r.centerX(); val cy = r.centerY()
             if (b in active || b == pressed) {
-                val s = dp(22f)
+                val s = dp(25f)
                 c.drawRoundRect(cx - s, cy - s, cx + s, cy + s, dp(10f), dp(10f), activeBg)
             }
             drawIcon(c, b, cx, cy)
@@ -73,7 +73,8 @@ class ToolbarView(context: Context) : View(context) {
     }
 
     private fun drawIcon(c: Canvas, b: ToolButton, cx: Float, cy: Float) {
-        val s = dp(11f)
+        // 圖示放大約 30%（倬需求十二），按鈕數量不變
+        val s = dp(14.5f)
         when (b) {
             ToolButton.SETTINGS -> {
                 c.drawCircle(cx, cy, s * 0.42f, stroke)

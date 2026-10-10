@@ -158,6 +158,14 @@ class AbbreviationTest {
         assertEquals("ㄗㄋㄢ", e.state.segments.drop(1).joinToString(""))
     }
 
+    /** 「納入字典」用的注音反查（倬需求九）。 */
+    @Test fun reverseLookupReadings() {
+        assertEquals(listOf("ㄆㄥˊ", "ㄧㄡˇ"), system.readingsFor("朋友"))
+        assertEquals(listOf("ㄒㄧㄠˇ", "ㄗ", "ㄋㄢˊ"), system.readingsFor("小資男"))
+        assertEquals(4, system.readingsFor("一心一意")!!.size)
+        assertNull(system.readingsFor("abc"))
+    }
+
     @Test fun frequencyLearningPromotesChoice() {
         val e = engine()
         e.type("ㄉㄋ")

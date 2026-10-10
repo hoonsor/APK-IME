@@ -12,6 +12,8 @@ import tw.hoonsor.ime.app.ui.dp
 import tw.hoonsor.ime.app.ui.fillPaint
 import tw.hoonsor.ime.app.ui.strokePaint
 import tw.hoonsor.ime.app.ui.textPaint
+import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -26,7 +28,7 @@ class FanOverlayView(context: Context) : View(context) {
     var onSelect: ((FanItem) -> Unit)? = null
     var onDismiss: (() -> Unit)? = null
 
-    var items: List<FanItem> = FanItem.entries.toList()
+    var items: List<FanItem> = KeyboardLayouts.FAN_ITEMS
         set(v) { field = v; layoutTiles(); invalidate() }
 
     private var ox = 0f
@@ -80,13 +82,26 @@ class FanOverlayView(context: Context) : View(context) {
         }
     }
 
+    /**
+     * 依「方向」選擇（倬：手指離圓心很近也要能選）：
+     * 先看是否直接按在方塊上；否則只要離扇子鍵超過一小段距離，就選角度最接近的方塊。
+     * 往下方（扇形外）滑則不選。
+     */
     private fun hitTest(x: Float, y: Float): FanItem? {
-        // 方塊本身，或方塊方向上、離中心夠遠的位置都算命中（滑動不必精準）
         tiles.firstOrNull { it.second.contains(x, y) }?.let { return it.first }
-        val d = hypot(x - ox, y - oy)
-        if (d < radius * 0.45f) return null
-        return tiles.minByOrNull { (_, r) -> hypot(r.centerX() - x, r.centerY() - y) }
-            ?.takeIf { (_, r) -> hypot(r.centerX() - x, r.centerY() - y) < radius * 0.6f }?.first
+        val dx = x - ox
+        val dy = y - oy
+        if (hypot(dx, dy) < dp(18f)) return null
+        val ang = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble()))
+        var best: FanItem? = null
+        var bestDiff = Double.MAX_VALUE
+        for ((item, r) in tiles) {
+            val ta = Math.toDegrees(atan2((r.centerY() - oy).toDouble(), (r.centerX() - ox).toDouble()))
+            var d = abs(ang - ta)
+            if (d > 180) d = 360 - d
+            if (d < bestDiff) { bestDiff = d; best = item }
+        }
+        return if (bestDiff <= 45) best else null
     }
 
     private fun layoutTiles() {

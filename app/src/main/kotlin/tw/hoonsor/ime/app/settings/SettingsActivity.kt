@@ -16,11 +16,10 @@ import android.widget.TextView
 import android.widget.Toast
 import tw.hoonsor.ime.app.UserPhraseStore
 import tw.hoonsor.ime.app.ui.dpi
-import java.io.File
 
 /**
  * 設定頁（參數設定）：啟用輸入法、測試、偏好開關、詞庫備份／還原（D4）。
- * 只用 Android 框架元件，不依賴 AndroidX。語音／剪貼簿設定在合併後加入。
+ * 只用 Android 框架元件，不依賴 AndroidX。
  */
 class SettingsActivity : Activity() {
 
@@ -74,24 +73,48 @@ class SettingsActivity : Activity() {
             Toast.makeText(this, "下次開啟鍵盤時生效", Toast.LENGTH_SHORT).show()
         }
 
-        title("4. 使用者詞庫")
-        button("備份詞庫到檔案…") {
+        title("4. 使用者字典")
+        button("檢視／編輯 注音自建詞") { openDict(DictionaryActivity.MODE_PHRASES) }
+        button("檢視／編輯 英文詞（字母＋符號）") { openDict(DictionaryActivity.MODE_WORDS) }
+        button("常用短語") { openDict(DictionaryActivity.MODE_QUICK) }
+        button("備份字典到檔案…") {
             startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "text/tab-separated-values"
                 putExtra(Intent.EXTRA_TITLE, "user_dict_backup.tsv")
             }, REQ_EXPORT)
         }
-        button("從檔案還原詞庫…") {
+        button("從檔案還原字典…") {
             startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "*/*"
             }, REQ_IMPORT)
         }
         col.addView(TextView(this).apply {
-            text = "還原後請把鍵盤收起再打開一次，新詞才會載入。"
+            text = "在這裡修改字典後，把鍵盤收起再打開一次就會生效。"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
         })
+
+        title("5. 剪貼簿")
+        switch("記錄剪貼簿歷史", { prefs.clipCapture }) { prefs.clipCapture = it }
+        switch("剛複製的內容在候選列顯示「一點即貼」", { prefs.clipChip }) { prefs.clipChip = it }
+        col.addView(TextView(this).apply {
+            text = "只記錄文字，只存在這支手機；標記為敏感的內容（例如密碼管理器）不會記錄。" +
+                "\n開啟方式：扇子滑向「剪」、編輯面板長按「貼上」，或在上方開啟工具列按鈕。"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        })
+        button("清除所有剪貼簿紀錄（含釘選）") {
+            android.app.AlertDialog.Builder(this)
+                .setMessage("確定要清除所有剪貼簿紀錄嗎？")
+                .setPositiveButton("清除") { _, _ ->
+                    val h = tw.hoonsor.ime.app.clipboard.ClipboardHistory.get(this)
+                    h.load()
+                    h.all().forEach { h.remove(it.text) }
+                    toast("已清除")
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        }
 
         val scroll = ScrollView(this).apply {
             addView(col)
@@ -116,17 +139,14 @@ class SettingsActivity : Activity() {
         val uri = data?.data ?: return
         if (resultCode != RESULT_OK) return
         try {
-            val file = File(filesDir, "user_dict.tsv")
+            val store = UserPhraseStore.get(this)
+            store.load()
             when (requestCode) {
                 REQ_EXPORT -> {
-                    contentResolver.openOutputStream(uri)?.use { out ->
-                        if (file.exists()) file.inputStream().use { it.copyTo(out) }
-                    }
+                    contentResolver.openOutputStream(uri)?.use { store.exportTo(it) }
                     toast("已備份")
                 }
                 REQ_IMPORT -> {
-                    val store = UserPhraseStore(this)
-                    store.load()
                     val n = contentResolver.openInputStream(uri)?.use { store.importFrom(it) } ?: 0
                     toast("已還原 $n 筆")
                 }
@@ -135,6 +155,9 @@ class SettingsActivity : Activity() {
             toast("失敗：${e.message}")
         }
     }
+
+    private fun openDict(mode: String) =
+        startActivity(Intent(this, DictionaryActivity::class.java).putExtra(DictionaryActivity.EXTRA_MODE, mode))
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
 

@@ -36,9 +36,30 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("fanClipboard", true)
         set(v) = sp.edit().putBoolean("fanClipboard", v).apply()
 
+    /** 需求八：簡體輸出。 */
+    var simplified: Boolean
+        get() = sp.getBoolean("simplified", false)
+        set(v) = sp.edit().putBoolean("simplified", v).apply()
+
+    /** 需求十三：記錄剪貼簿歷史。 */
+    var clipCapture: Boolean
+        get() = sp.getBoolean("clipCapture", true)
+        set(v) = sp.edit().putBoolean("clipCapture", v).apply()
+
+    /** 剪貼簿歷史保留筆數（釘選的不算）。 */
+    var clipMax: Int
+        get() = sp.getInt("clipMax", 100)
+        set(v) = sp.edit().putInt("clipMax", v).apply()
+
+    /** 剛複製的內容在候選列顯示「一點即貼」。 */
+    var clipChip: Boolean
+        get() = sp.getBoolean("clipChip", true)
+        set(v) = sp.edit().putBoolean("clipChip", v).apply()
+
     companion object {
-        const val DEFAULT_HEIGHT_DP = 290
-        const val MIN_HEIGHT_DP = 220
+        // 倬實測：舊預設 290 按「較低」6 次（-60）最合適
+        const val DEFAULT_HEIGHT_DP = 230
+        const val MIN_HEIGHT_DP = 180
         const val MAX_HEIGHT_DP = 400
     }
 }

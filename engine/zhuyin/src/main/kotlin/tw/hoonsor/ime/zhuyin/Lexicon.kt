@@ -38,6 +38,7 @@ open class Lexicon {
         size++
         sortedKeys = null
         sortedTexts = null
+        byText = null
     }
 
     fun remove(text: String, syllables: List<Syllable>): Boolean {
@@ -49,11 +50,61 @@ open class Lexicon {
             if (list.isEmpty()) byKey.remove(key)
             sortedKeys = null
             sortedTexts = null
+            byText = null
         }
         return removed
     }
 
     fun entries(): Sequence<LexEntry> = byKey.values.asSequence().flatten()
+
+    /** 清空（使用者詞庫重新載入時用）。 */
+    fun clear() {
+        byKey.clear()
+        size = 0
+        sortedKeys = null
+        sortedTexts = null
+        byText = null
+    }
+
+    @Volatile
+    private var byText: HashMap<String, LexEntry>? = null
+
+    /** 文字 → 最常用讀音的詞條（反查注音用，第一次呼叫時建立索引）。 */
+    @Synchronized
+    private fun textIndex(): HashMap<String, LexEntry> {
+        byText?.let { return it }
+        val m = HashMap<String, LexEntry>(size * 2)
+        for (e in entries()) {
+            val old = m[e.text]
+            if (old == null || e.count > old.count) m[e.text] = e
+        }
+        byText = m
+        return m
+    }
+
+    /**
+     * 反查一段文字的注音（每字一個音節，含聲調）。
+     * 由左到右優先比對最長的詞（多音字在詞中讀音較準），找不到的字回傳 null。
+     * 例：「小資男」→ ["ㄒㄧㄠˇ", "ㄗ", "ㄋㄢˊ"]
+     */
+    fun readingsFor(text: String, maxPhrase: Int = 8): List<String>? {
+        if (text.isEmpty()) return null
+        val idx = textIndex()
+        val out = ArrayList<String>(text.length)
+        var i = 0
+        while (i < text.length) {
+            var matched = false
+            for (n in minOf(maxPhrase, text.length - i) downTo 1) {
+                val e = idx[text.substring(i, i + n)] ?: continue
+                e.syllables.forEach { out += it.toString() }
+                i += n
+                matched = true
+                break
+            }
+            if (!matched) return null
+        }
+        return out
+    }
 
     fun exact(key: String): List<LexEntry> = byKey[key] ?: emptyList()
 

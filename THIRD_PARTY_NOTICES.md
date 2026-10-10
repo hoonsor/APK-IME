@@ -23,3 +23,11 @@ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPO
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## OpenCC 繁簡轉換表
+
+`app/src/main/assets/opencc_ts_chars.txt`、`opencc_ts_phrases.txt` 取自 OpenCC
+（https://github.com/BYVoid/OpenCC，`data/dictionary/TSCharacters.txt`、`TSPhrases.txt`）。
+
+Apache License 2.0 — Copyright (c) 2010-2026 Carbo Kuo and contributors.
+全文：http://www.apache.org/licenses/LICENSE-2.0

@@ -7,7 +7,7 @@ import android.widget.FrameLayout
 enum class PanelMode { KEYBOARD, VOICE, CLIPBOARD }
 
 /** 浮在面板區上方的覆蓋層，同時最多一個。 */
-enum class Overlay { NONE, CANDIDATES, EDIT, GEAR, HEIGHT, FAN }
+enum class Overlay { NONE, CANDIDATES, EDIT, GEAR, HEIGHT, PHRASES, FAN }
 
 /**
  * 集中管理面板區的切換。所有面板 View 只建立一次，切換時只改 visibility，

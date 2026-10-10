@@ -35,7 +35,8 @@ class KeyboardView(context: Context) : View(context) {
 
     var listener: Listener? = null
     var haptics = false
-    var shiftOn = false
+    /** 0 = 小寫、1 = 下一個字母大寫、2 = 大寫鎖定（快速點兩下）。 */
+    var shiftState = 0
         set(v) { field = v; invalidate() }
 
     private var rows: List<List<KeyDef>> = emptyList()
@@ -61,6 +62,7 @@ class KeyboardView(context: Context) : View(context) {
     private val enterPaint = strokePaint(Palette.TEXT, dp(3f))
     private val accentPaint = textPaint(Palette.ACCENT, dp(22f), true)
     private val path = Path()
+    private val lockPaint = strokePaint(Palette.ACCENT, dp(2.5f))
 
     private var pressed: KeyDef? = null
     private var downX = 0f
@@ -155,9 +157,14 @@ class KeyboardView(context: Context) : View(context) {
                 c.drawPath(p, enterPaint)
             }
             else -> {
-                val p = if (k.action == KeyAction.Shift && shiftOn) accentPaint else labelPaint
+                val isShift = k.action == KeyAction.Shift
+                val p = if (isShift && shiftState > 0) accentPaint else labelPaint
                 p.textSize = dp(k.textSizeSp)
                 c.drawText(k.label, cx, cy + p.centerOffset(), p)
+                if (isShift && shiftState == 2) {
+                    // 大寫鎖定：鍵下方加一條底線
+                    c.drawLine(cx - dp(9f), cy + dp(13f), cx + dp(9f), cy + dp(13f), lockPaint)
+                }
             }
         }
     }

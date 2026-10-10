@@ -109,6 +109,12 @@ class DefaultZhuyinEngine(
         user.add(LexEntry(text, syls, frequency, source))
     }
 
+    /** 清空使用者詞（設定頁編輯字典後重新載入用）。 */
+    fun clearUserPhrases() {
+        user.clear()
+        refresh()
+    }
+
     fun setUsage(text: String, readings: List<String>, count: Int) {
         usage[usageKey(text, readings)] = count
     }

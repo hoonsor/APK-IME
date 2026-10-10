@@ -25,6 +25,10 @@ data class CandItem(
     val badge: String? = null,
     /** 鄰近修正候選以較亮的藍色顯示（Z9，預留）。 */
     val near: Boolean = false,
+    /** 黃色字：刪除確認、「＋加入字典」等操作項目。 */
+    val accent: Boolean = false,
+    /** 紅底：危險操作（刪除）。 */
+    val danger: Boolean = false,
 )
 
 /** 候選列「特殊 chip」（剪貼簿最近內容，R2 預留）。 */
@@ -91,8 +95,7 @@ class CandidateBarView(context: Context) : LinearLayout(context) {
                 gravity = Gravity.CENTER
                 setPadding(dpi(12f), 0, dpi(12f), 0)
                 maxLines = 1
-                setOnClickListener { onPick?.invoke(i) }
-                setOnLongClickListener { onLongPick?.invoke(i); true }
+                setOnTouchListener(PressListener(i))
             }
             pool += tv
             row.addView(tv, LayoutParams(LayoutParams.WRAP_CONTENT, dpi(44f)))
@@ -106,6 +109,8 @@ class CandidateBarView(context: Context) : LinearLayout(context) {
                 val badge = when (item.badge) { "U" -> "ᵁ"; "C" -> "ᶜ"; else -> "" }
                 tv.text = item.text + badge
                 when {
+                    item.danger -> { tv.setTextColor(0xFFFFFFFF.toInt()); tv.setBackgroundColor(0xFFB3403A.toInt()) }
+                    item.accent -> { tv.setTextColor(Palette.ACCENT); tv.background = null }
                     item.highlight -> {
                         tv.setTextColor(Palette.HILITE_TEXT)
                         tv.setBackgroundColor(Palette.HILITE_BG)
@@ -116,6 +121,39 @@ class CandidateBarView(context: Context) : LinearLayout(context) {
             }
         }
         scroll.scrollTo(0, 0)
+    }
+
+    /**
+     * 點擊與長按（長按需 0.8 秒，避免誤刪；倬需求六）。
+     * 左右滑動時 HorizontalScrollView 會攔截觸控並送出 CANCEL，不會誤觸。
+     */
+    private inner class PressListener(private val index: Int) : OnTouchListener {
+        private var fired = false
+        private val long = Runnable {
+            fired = true
+            performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+            onLongPick?.invoke(index)
+        }
+
+        override fun onTouch(v: View, e: android.view.MotionEvent): Boolean {
+            when (e.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    fired = false
+                    v.isPressed = true
+                    v.postDelayed(long, LONG_PRESS_MS)
+                }
+                android.view.MotionEvent.ACTION_UP -> {
+                    v.removeCallbacks(long)
+                    v.isPressed = false
+                    if (!fired) onPick?.invoke(index)
+                }
+                android.view.MotionEvent.ACTION_CANCEL -> {
+                    v.removeCallbacks(long)
+                    v.isPressed = false
+                }
+            }
+            return true
+        }
     }
 
     private fun arrowButton(down: Boolean, onClick: () -> Unit): View = object : View(context) {
@@ -131,5 +169,9 @@ class CandidateBarView(context: Context) : LinearLayout(context) {
     }.apply {
         contentDescription = if (down) "展開候選詞" else "下一頁候選詞"
         setOnClickListener { onClick() }
+    }
+
+    companion object {
+        const val LONG_PRESS_MS = 800L
     }
 }

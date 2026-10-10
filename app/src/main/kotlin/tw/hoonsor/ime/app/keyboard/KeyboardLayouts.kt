@@ -34,7 +34,7 @@ data class KeyDef(
     val textSizeSp: Float = 22f,
 )
 
-/** 扇子項目（K3）。CLIPBOARD 為剪貼簿預留（R2，待倬決定入口）。 */
+/** 扇子項目（K3）。顏文字目前不顯示在扇子上（倬：用不到），保留版面以便日後開啟。 */
 enum class FanItem(val glyph: String, val title: String) {
     HALF("半", "半形符號"),
     FULL("全", "全形符號"),
@@ -63,6 +63,31 @@ object KeyboardLayouts {
                 KeyDef("ㄦ", KeyAction.Zhuyin('ㄦ')),
                 KeyDef("", KeyAction.Backspace, style = KeyStyle.DARK),
                 KeyDef("", KeyAction.Enter, style = KeyStyle.DARK),
+            ),
+        )
+    }
+
+    /** 扇子顯示的項目（依序）。 */
+    val FAN_ITEMS = listOf(FanItem.HALF, FanItem.FULL, FanItem.NUM, FanItem.CLIPBOARD)
+
+    /**
+     * 數字鍵盤：仿手機撥號鍵盤（倬：超注音的數字鍵盤是撥號盤樣式）。
+     * 連續輸入不會跳回注音，按「ㄅㄆㄇ」才回去。
+     */
+    val DIALER: List<List<KeyDef>> by lazy {
+        fun d(t: String) = KeyDef(t, KeyAction.Commit(t), weight = 1.3f, textSizeSp = 28f)
+        fun side(t: String) = KeyDef(t, KeyAction.Commit(t), style = KeyStyle.DARK, textSizeSp = 22f)
+        listOf(
+            listOf(d("1"), d("2"), d("3"), side("-")),
+            listOf(d("4"), d("5"), d("6"), side(".")),
+            listOf(d("7"), d("8"), d("9"), KeyDef("", KeyAction.Backspace, style = KeyStyle.DARK)),
+            listOf(d("*"), d("0"), d("#"), KeyDef("", KeyAction.Enter, style = KeyStyle.DARK)),
+            listOf(
+                KeyDef("ㄅㄆㄇ", KeyAction.ToZhuyin, weight = 1.3f, style = KeyStyle.DARK, textSizeSp = 16f),
+                KeyDef(",", KeyAction.Commit(","), weight = 0.9f),
+                KeyDef("", KeyAction.Space, weight = 1.7f),
+                KeyDef("+", KeyAction.Commit("+"), weight = 0.9f),
+                KeyDef("/", KeyAction.Commit("/"), weight = 0.9f),
             ),
         )
     }

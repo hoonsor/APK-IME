@@ -35,9 +35,10 @@ class ImeEditor(private val ic: () -> InputConnection?) {
 
     fun startSelect() { selecting = true }
 
+    /** 全選：只建立選取範圍，不進入「開選」模式（貼上或游標移走後就自動回到未選取）。 */
     fun selectAll() {
         ic()?.performContextMenuAction(android.R.id.selectAll)
-        selecting = true
+        selecting = false
     }
 
     /** 停選：取消選取，游標停在選取範圍尾端。 */
@@ -46,16 +47,28 @@ class ImeEditor(private val ic: () -> InputConnection?) {
         if (selEnd >= 0) ic()?.setSelection(selEnd, selEnd)
     }
 
-    fun copy() { ic()?.performContextMenuAction(android.R.id.copy) }
+    fun copy() {
+        ic()?.performContextMenuAction(android.R.id.copy)
+        selecting = false
+    }
 
     fun cut() {
         ic()?.performContextMenuAction(android.R.id.cut)
         selecting = false
     }
 
-    fun paste() { ic()?.performContextMenuAction(android.R.id.paste) }
+    fun paste() {
+        ic()?.performContextMenuAction(android.R.id.paste)
+        selecting = false
+    }
 
-    fun deleteBackward() { ic()?.let { ImeTextTarget.sendKey(it, KeyEvent.KEYCODE_DEL) } }
+    fun deleteBackward() {
+        ic()?.let { ImeTextTarget.sendKey(it, KeyEvent.KEYCODE_DEL) }
+        selecting = false
+    }
 
-    fun deleteForward() { ic()?.let { ImeTextTarget.sendKey(it, KeyEvent.KEYCODE_FORWARD_DEL) } }
+    fun deleteForward() {
+        ic()?.let { ImeTextTarget.sendKey(it, KeyEvent.KEYCODE_FORWARD_DEL) }
+        selecting = false
+    }
 }
