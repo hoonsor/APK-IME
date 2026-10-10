@@ -46,5 +46,13 @@
             android:label="字典"
             android:theme="@android:style/Theme.Material.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- AI 模型設定（API key、各用途模型、語音選項） -->
+        <activity
+            android:name=".ai.AiSettingsActivity"
+            android:exported="false"
+            android:label="AI 模型設定"
+            android:theme="@android:style/Theme.Material.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

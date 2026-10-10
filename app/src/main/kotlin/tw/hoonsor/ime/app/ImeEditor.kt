@@ -35,6 +35,13 @@ class ImeEditor(private val ic: () -> InputConnection?) {
 
     fun startSelect() { selecting = true }
 
+    /** 整個輸入框的文字（AI 潤飾全文用）；讀不到時回傳 null。 */
+    fun fullText(): String? = try {
+        ic()?.getExtractedText(android.view.inputmethod.ExtractedTextRequest().apply { hintMaxChars = 10_000 }, 0)?.text?.toString()
+    } catch (e: Exception) {
+        null
+    }
+
     /** 全選：只建立選取範圍，不進入「開選」模式（貼上或游標移走後就自動回到未選取）。 */
     fun selectAll() {
         ic()?.performContextMenuAction(android.R.id.selectAll)

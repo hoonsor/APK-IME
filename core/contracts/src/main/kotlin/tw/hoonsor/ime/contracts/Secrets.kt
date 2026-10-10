@@ -10,4 +10,4 @@ interface SecretStore {
     suspend fun set(provider: SecretProvider, value: String?)
 }
 
-enum class SecretProvider { OPENAI, ANTHROPIC, GROQ, GOOGLE }
+enum class SecretProvider { OPENAI, ANTHROPIC, GROQ, GOOGLE, MINIMAX }

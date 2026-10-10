@@ -17,6 +17,9 @@ import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.Toast
+import tw.hoonsor.ime.app.ai.AiSettingsActivity
+import tw.hoonsor.ime.app.ai.AppVoiceTerms
+import tw.hoonsor.ime.app.ai.KeystoreSecretStore
 import tw.hoonsor.ime.app.clipboard.ClipSearchStrip
 import tw.hoonsor.ime.app.clipboard.ClipboardHistory
 import tw.hoonsor.ime.app.clipboard.SearchTarget
@@ -46,7 +49,12 @@ import tw.hoonsor.ime.app.topbar.ToolbarView
 import tw.hoonsor.ime.app.ui.Palette
 import tw.hoonsor.ime.app.ui.dpi
 import tw.hoonsor.ime.contracts.FieldType
+import tw.hoonsor.ime.contracts.TextRewriter
 import tw.hoonsor.ime.contracts.TextTarget
+import tw.hoonsor.ime.contracts.VoiceInputController
+import tw.hoonsor.ime.voice.VoiceModule
+import tw.hoonsor.ime.voice.ai.Prompts
+import tw.hoonsor.ime.voice.ui.VoicePanelHost
 import tw.hoonsor.ime.zhuyin.Candidate
 import tw.hoonsor.ime.zhuyin.CandidateSource
 import tw.hoonsor.ime.zhuyin.DefaultZhuyinEngine
@@ -69,6 +77,19 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     private val clips = ClipboardHistory.get(service)
     private val cm = service.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     private val loader = Executors.newSingleThreadExecutor()
+    private val aiExec = Executors.newSingleThreadExecutor()
+
+    // ---------- 語音與 AI ----------
+    private val secrets = KeystoreSecretStore(service)
+    private val voiceTerms = AppVoiceTerms(store)
+    private var voice: VoiceInputController? = null
+    private var voicePanel: View? = null
+    private val rewriter: TextRewriter = VoiceModule.createRewriter(service, secrets, voiceTerms)
+
+    /** AI 改寫進行中（token 用來忽略被取消的結果）。 */
+    private var aiToken = 0
+    private var aiBusy = false
+    private var aiUndo: Pair<String, String>? = null   // (原文, 改寫後)
 
     private var system: Lexicon? = null
     private var engine: DefaultZhuyinEngine? = null
@@ -112,7 +133,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     private enum class Layout { ZHUYIN, ENGLISH, SYMBOL }
 
     /** 候選列目前顯示的是什麼（決定點選後要做什麼）。 */
-    private enum class BarKind { NONE, CANDIDATES, ASSOC, WORD, DELETE }
+    private enum class BarKind { NONE, CANDIDATES, ASSOC, WORD, DELETE, AI }
 
     private var layout = Layout.ZHUYIN
     private var symbolSet = FanItem.FULL
@@ -235,12 +256,22 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         clipboardSlot = FrameLayout(c).apply { visibility = View.GONE }
         clipPanel = RowListView(c)
         clipboardSlot.addView(clipPanel, match())
+        try {
+            val v = VoiceModule.createController(c, voiceTerms, secrets)
+            voice = v
+            voicePanel = VoiceModule.createPanelView(c, v, voiceHost).also { voiceSlot.addView(it, match()) }
+        } catch (e: Exception) {
+            Log.e(TAG, "voice init failed", e)
+        }
         phrasePanel = RowListView(c)
         candGrid = CandidateGridView(c).apply { onPick = { i -> showOverlay(Overlay.NONE); pick(i) } }
         editPanel = TileGridView(c).apply { columns = 5; onTap = ::onEditTile; onLongPress = ::onEditLong }
         gearMenu = TileGridView(c).apply {
-            columns = 3
-            tiles = listOf(Tile("settings", "參數設定", "⚙"), Tile("height", "高度調整", "↕"), Tile("phrases", "常用短語", "⚡"))
+            columns = 4
+            tiles = listOf(
+                Tile("settings", "參數設定", "⚙"), Tile("height", "高度調整", "↕"),
+                Tile("phrases", "常用短語", "⚡"), Tile("ai", "AI模型設定", "✦"),
+            )
             onTap = ::onGearTile
         }
         heightPanel = TileGridView(c).apply {
@@ -277,7 +308,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         }
         panelArea.addOnLayoutChangeListener { _, l, _, r, _, _, _, _, _ ->
             val lp = gearMenu.layoutParams
-            val w = ((r - l) * 0.82f).toInt()
+            val w = ((r - l) * 0.96f).toInt()
             if (lp.width != w) { lp.width = w; gearMenu.layoutParams = lp }
         }
 
@@ -312,6 +343,9 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         wordBuf.setLength(0)
         pendingDelete = null
         confirmClear = false
+        aiUndo = null
+        aiBusy = false
+        aiToken++
         if (prefs.clipCapture && !isSensitiveClip()) clips.captureFrom(cm, prefs.clipMax)
         if (!viewReady) return
         searchSlot.visibility = View.GONE
@@ -335,6 +369,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     }
 
     fun onFinishInputView() {
+        voice?.cancel()   // 鍵盤收起時一定停止錄音（MOBILE_VOICE_HANDOFF §9.2）
         engine?.reset()
         assoc = emptyList()
         wordBuf.setLength(0)
@@ -366,6 +401,8 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     }
 
     fun release() {
+        voice?.release()
+        aiExec.shutdown()
         cm.removePrimaryClipChangedListener(clipListener)
         clips.listeners -= clipsChanged
         store.saveNow()
@@ -399,6 +436,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         barKind = when {
             panels.mode != PanelMode.KEYBOARD -> BarKind.NONE
             pd != null -> BarKind.DELETE
+            aiBusy || (aiUndo != null && !composing) -> BarKind.AI
             composing -> BarKind.CANDIDATES
             wordBuf.isNotEmpty() && layout != Layout.ZHUYIN -> BarKind.WORD
             assoc.isNotEmpty() -> BarKind.ASSOC
@@ -421,6 +459,8 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
                 listOf(CandItem(if (inDict) "$w ✓" else "$w ＋", accent = true)) + wordMatches.map { CandItem(it) }
             }
             BarKind.ASSOC -> assoc.map { CandItem(display(it.text)) }
+            BarKind.AI -> if (aiBusy) listOf(CandItem("✦ AI 處理中…", accent = true), CandItem("取消"))
+                else listOf(CandItem("✦ 已改寫", accent = true), CandItem("↶ 還原原文"), CandItem("✓ 保留"))
             BarKind.NONE -> emptyList()
         }
         val chip = clipChip()
@@ -520,6 +560,14 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
                     wordBuf.setLength(0)
                 }
             }
+            BarKind.AI -> {
+                if (aiBusy) {
+                    if (i == 1) { aiToken++; aiBusy = false; toast("已取消") }
+                } else {
+                    if (i == 1) revertAi()
+                    if (i >= 1) aiUndo = null
+                }
+            }
             BarKind.NONE -> {}
         }
         render()
@@ -544,6 +592,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     override fun onKey(key: KeyDef) {
         val e = engine
         pendingDelete = null
+        aiUndo = null
         clips.dismissRecent()
         when (val a = key.action) {
             is KeyAction.Zhuyin -> {
@@ -653,7 +702,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     private fun onToolbar(b: ToolButton) {
         when (b) {
             ToolButton.SETTINGS -> toggleOverlay(Overlay.GEAR)
-            ToolButton.MIC -> toast("語音模組尚未合併")
+            ToolButton.MIC -> if (panels.mode == PanelMode.VOICE) closeVoice() else openVoice()
             ToolButton.TRAD_SIMP -> {
                 prefs.simplified = !prefs.simplified
                 toolbar.simplified = prefs.simplified
@@ -676,6 +725,10 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
             }
             "height" -> showOverlay(Overlay.HEIGHT)
             "phrases" -> showQuickPhrases()
+            "ai" -> {
+                showOverlay(Overlay.NONE)
+                ctx.startActivity(Intent(ctx, AiSettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
         }
     }
 
@@ -750,7 +803,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
             "delBack" -> editor.deleteBackward()
             "delFwd" -> editor.deleteForward()
             "addDict" -> addSelectionToDictionary()
-            "ai1", "ai2", "ai3" -> toast("AI 改寫模組尚未合併（REQUESTS R1）")
+            "ai1", "ai2", "ai3" -> runAi(t.id)
         }
         refreshEditTiles()
     }
@@ -785,6 +838,92 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
                 }
             }
         }
+    }
+
+    // =====================================================================
+    // 語音輸入
+    // =====================================================================
+
+    private val voiceHost = object : VoicePanelHost {
+        override fun target(): TextTarget = currentTarget
+        override fun insert(text: String) { currentTarget.commitText(text) }
+        override fun backspace() = currentTarget.deleteSurroundingText(1, 0)
+        override fun enter() { if (currentTarget === imeTarget) imeTarget.enter() else currentTarget.commitText("\n") }
+        override fun cursorLeft() { editor.selecting = false; editor.left() }
+        override fun cursorRight() { editor.selecting = false; editor.right() }
+        override fun backToKeyboard() = closeVoice()
+        override fun openSettings() {
+            ctx.startActivity(Intent(ctx, AiSettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
+    private fun openVoice() {
+        val panel = voicePanel
+        if (panel == null) { toast("語音模組無法啟動"); return }
+        if (searching) exitSearch(backToPanel = false)
+        commitComposing()
+        wordBuf.setLength(0)
+        panels.showPanel(PanelMode.VOICE)
+        VoiceModule.onPanelShown(panel)
+        render()
+    }
+
+    private fun closeVoice() {
+        voice?.cancel()
+        panels.showPanel(PanelMode.KEYBOARD)
+        render()
+    }
+
+    // =====================================================================
+    // AI 改寫（編輯面板 AI 欄）
+    // =====================================================================
+
+    /**
+     * ai1：潤飾（選取）／潤飾全文；ai2：AI 寫作（未選取時）；ai3：翻英（選取）／翻英全文。
+     * 有選取 → 只處理選取文字；沒選取 → 處理整個輸入框。完成後候選列可「還原原文」。
+     */
+    private fun runAi(id: String) {
+        if (aiBusy) { toast("AI 處理中，請稍候"); return }
+        val hints = imeTarget.hints
+        if (hints.isPassword) { toast("密碼欄位不使用 AI"); return }
+        val sel = imeTarget.selectedText()?.toString()?.takeIf { it.isNotBlank() }
+        val whole = sel == null
+        val text = sel ?: editor.fullText()?.takeIf { it.isNotBlank() }
+        if (text == null) { toast("輸入框沒有文字"); return }
+        if (text.length > 4000) { toast("文字太長（最多 4000 字）"); return }
+        showOverlay(Overlay.NONE)
+        val token = ++aiToken
+        aiBusy = true
+        aiUndo = null
+        render()
+        aiExec.execute {
+            val r = when (id) {
+                "ai2" -> rewriter.compose(text, hints)
+                "ai3" -> rewriter.rewrite(text, Prompts.INSTR_TO_EN, hints)
+                else -> rewriter.rewrite(text, Prompts.INSTR_POLISH, hints)
+            }
+            main.post {
+                if (token != aiToken) return@post   // 已取消或換了輸入框
+                aiBusy = false
+                r.onSuccess { out ->
+                    if (whole) editor.selectAll()
+                    imeTarget.replaceSelection(out)
+                    aiUndo = text to out
+                }.onFailure { e ->
+                    toast("AI 失敗：${e.message}")
+                }
+                render()
+            }
+        }
+    }
+
+    private fun revertAi() {
+        val (orig, out) = aiUndo ?: return
+        val before = imeTarget.textBeforeCursor(out.length)?.toString()
+        if (before != out) { toast("文字已改變，無法還原"); return }
+        imeTarget.deleteSurroundingText(out.length, 0)
+        imeTarget.commitText(orig)
+        toast("已還原原文")
     }
 
     // =====================================================================

@@ -1,44 +1,83 @@
 package tw.hoonsor.ime.voice
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.View
-import androidx.compose.runtime.Composable
 import tw.hoonsor.ime.contracts.SecretStore
+import tw.hoonsor.ime.contracts.TextRewriter
 import tw.hoonsor.ime.contracts.VoiceInputController
+import tw.hoonsor.ime.contracts.VoiceState
 import tw.hoonsor.ime.contracts.VoiceTermProvider
+import tw.hoonsor.ime.voice.ai.AiRunner
+import tw.hoonsor.ime.voice.text.S2tConverter
+import tw.hoonsor.ime.voice.ui.VoicePanelHost
+import tw.hoonsor.ime.voice.ui.VoicePanelView
+import java.util.concurrent.Executors
 
 /**
- * 語音模組對外唯一入口。:app 只呼叫這裡的三個函式。
+ * 語音模組對外入口。:app 只呼叫這裡的函式。
  *
- * ⚠️ 這三個函式的「簽章」是對話 A、B 的合併約定，不可更改；
- * 內部實作由對話 B 自由發揮。若真的需要改簽章，依 docs/CONVENTIONS.md 的契約變更流程。
+ * 變更紀錄（倬指示由對話 A 一併實作語音，2026-10-10）：
+ * - createPanelView 多了 host 參數（標點、游標、回鍵盤需要輸入法配合）。
+ * - 新增 createRewriter（REQUESTS R1）、addStateListener（不需要 coroutines 也能觀察狀態）。
+ * - 移除 Compose 的 SettingsScreen；設定頁改由 :app 的「AI 模型設定」用框架元件實作，讀寫 [tw.hoonsor.ime.voice.ai.AiConfig]。
  */
 object VoiceModule {
 
-    /** 建立控制器。IME 生命週期內建立一次，onDestroy 時呼叫 controller.release()。 */
-    fun createController(
-        context: Context,
-        terms: VoiceTermProvider,
-        secrets: SecretStore,
-    ): VoiceInputController {
-        TODO("對話 B 實作")
+    @Volatile private var s2t: S2tConverter? = null
+    private val loader = Executors.newSingleThreadExecutor()
+
+    /** 簡轉繁字表約 5 萬筆，在背景預先載入；載入完成前的語音結果暫不轉換。 */
+    private fun warmS2t(context: Context) {
+        if (s2t != null) return
+        val app = context.applicationContext
+        loader.execute {
+            if (s2t != null) return@execute
+            try {
+                val a = app.assets
+                s2t = S2tConverter(
+                    a.open("opencc_st_phrases.txt").bufferedReader(),
+                    a.open("opencc_st_chars.txt").bufferedReader(),
+                    a.open("opencc_tw_variants.txt").bufferedReader(),
+                )
+            } catch (e: Exception) {
+                Log.e("VoiceModule", "s2t load failed", e)
+            }
+        }
     }
 
-    /**
-     * 語音面板：波形、計時、狀態文字、取消鍵、完成鍵、「還原原文」鍵。
-     * app 會把它放在鍵盤容器中，寬度 match_parent，高度 = 鍵盤高度。
-     * 必須支援深色主題（倬使用深色鍵盤）。
-     */
-    fun createPanelView(context: Context, controller: VoiceInputController): View {
-        TODO("對話 B 實作")
+    /** 建立控制器。輸入法生命週期內建立一次，onDestroy 時呼叫 controller.release()。 */
+    fun createController(context: Context, terms: VoiceTermProvider, secrets: SecretStore): VoiceInputController {
+        warmS2t(context)
+        return DefaultVoiceInputController(context, AiRunner(context, secrets, terms)) { s2t }
     }
 
-    /**
-     * 語音設定頁（模型選擇、API key、錄音方式、潤飾風格、依 App 語氣、翻譯目標語言）。
-     * app 的設定 Activity 會在「語音輸入設定」項目中顯示它。
-     */
-    @Composable
-    fun SettingsScreen(secrets: SecretStore, onBack: () -> Unit) {
-        TODO("對話 B 實作")
+    /** 編輯面板 AI 欄用的改寫器（使用「文字 AI」模型）。 */
+    fun createRewriter(context: Context, secrets: SecretStore, terms: VoiceTermProvider?): TextRewriter =
+        DefaultTextRewriter(AiRunner(context, secrets, terms))
+
+    /** 語音面板（深色），寬度 match_parent、高度 = 鍵盤高度。 */
+    fun createPanelView(context: Context, controller: VoiceInputController, host: VoicePanelHost): View {
+        val c = controller as? DefaultVoiceInputController
+        val view = VoicePanelView(context, controller, host,
+            note = { c?.note },
+            hasResult = { c?.lastResult != null })
+        addStateListener(controller) { view.onState(it) }
+        return view
+    }
+
+    /** 面板顯示時呼叫（處理「打開就自動錄音」設定）。 */
+    fun onPanelShown(panel: View) {
+        (panel as? VoicePanelView)?.onShown()
+    }
+
+    /** 在主執行緒收到狀態變化。 */
+    fun addStateListener(controller: VoiceInputController, listener: (VoiceState) -> Unit) {
+        val main = Handler(Looper.getMainLooper())
+        (controller as? DefaultVoiceInputController)?.listeners?.add { s ->
+            if (Looper.myLooper() == Looper.getMainLooper()) listener(s) else main.post { listener(s) }
+        }
     }
 }

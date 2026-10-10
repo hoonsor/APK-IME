@@ -2,7 +2,7 @@
 
 格式：`日期｜提出方（A/B）｜想改什麼｜原因｜對另一方的影響｜狀態（待決/接受/拒絕）`
 
-## R1｜2026-10-09｜A → B｜共用「AI 文字改寫」服務｜待決
+## R1｜2026-10-09｜A → B｜共用「AI 文字改寫」服務｜✅ 已實作（2026-10-10，倬指示由 A 實作語音模組）
 
 - **想改什麼**：在 `core/contracts` 新增介面
   ```kotlin
@@ -22,3 +22,11 @@
 - 搜尋模式時輸入法暫時長高 strip 的高度。
 - 組字區空白時，候選列順序為：特殊 chip → 聯想詞；開始打字兩者都消失。
 - 剪貼簿入口（工具列 📋 或扇子）待倬決定；若以扇子為主，剪貼簿面板底列需自備「↩ 回鍵盤」按鈕（呼叫 `host.closePanel()`）。
+
+
+## R3｜2026-10-10｜A｜VoiceModule 簽章調整｜✅ 已實作
+
+- `createPanelView(context, controller, host: VoicePanelHost)`：面板的標點、游標、回鍵盤需要輸入法配合。
+- 新增 `createRewriter`、`addStateListener`、`onPanelShown`。
+- 移除 Compose `SettingsScreen`，改由 :app 的 `AiSettingsActivity`（框架元件）讀寫 `AiConfig`；`:feature:voice` 不再依賴 Compose／OkHttp。
+- `TextRewriter` 改為阻塞式方法（不依賴 kotlinx.coroutines 的呼叫端）。

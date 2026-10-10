@@ -62,6 +62,11 @@ class SettingsActivity : Activity() {
         col.addView(EditText(this).apply { hint = "在這裡測試打字"; minLines = 3 },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
+        title("AI 與語音")
+        button("AI 模型設定（API key、模型、語音選項）") {
+            startActivity(Intent(this, tw.hoonsor.ime.app.ai.AiSettingsActivity::class.java))
+        }
+
         title("3. 偏好設定")
         switch("按鍵振動", { prefs.haptics }) { prefs.haptics = it }
         switch("英文鍵盤上排固定顯示數字", { prefs.numberRow }) { prefs.numberRow = it }

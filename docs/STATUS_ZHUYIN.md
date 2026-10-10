@@ -1,5 +1,37 @@
 # 注音鍵盤進度（對話 A）
 
+## 2026-10-10 晚（語音輸入、AI 潤飾、AI 模型設定）
+
+倬指示：依 `docs/MOBILE_VOICE_HANDOFF.md`（桌面版嘴炮輸入法實測結果）在本對話一併實作語音模組與 AI 功能。
+
+### `:feature:voice`（只依賴 contracts＋Android 框架，無第三方函式庫）
+- `ai/AiConfig`：供應商（Groq／MiniMax／OpenAI，皆 OpenAI 相容）× 用途（語音轉文字、語音潤飾、文字 AI，各有備援）；模型 ID 可編輯。
+  預設依實測：STT Groq whisper-large-v3（備援 turbo）、潤飾 Groq qwen/qwen3.8-27b（備援 gpt-oss-120b）、文字 AI MiniMax-M3（備援 Groq qwen）。
+- `ai/AiHttp`：HttpURLConnection 的 chat/completions、audio/transcriptions（multipart WAV）、GET /models；錯誤訊息不含 key。
+- `ai/AiRunner`：主要失敗自動改用備援（V10）。
+- `ai/Prompts`：§5 STT prompt、§7.2 核心規則（原文）、英文版、§7.3 App 語氣／輸出語言／個人詞典、§7.4 說話修改、AI 寫作。
+- `ai/Sanitizer`（§8.1）、`text/TextRules`（§8.2）、`text/Hallucination`（§6.1 整句比對＋重複偵測）、`text/S2tConverter`（§6.2 s2tw，自帶 OpenCC 字表）。
+- `audio/Recorder`：AudioRecord VOICE_RECOGNITION 16 kHz，50 ms 框 RMS，§4 靜音判斷、頭尾裁切、WAV。
+- `DefaultVoiceInputController`：§3 狀態機；session 防重複送字／取消後不送字；潤飾失敗送原文並提示；還原原文。
+- `DefaultTextRewriter`（REQUESTS R1）：編輯面板 AI 欄。
+- `ui/VoicePanelView`：模式（聽寫／修改選取／翻譯）、波形、狀態、取消／還原原文、快速標點列、「按我開始說」；支援按住說話。
+- 測試 `VoiceTextTest` 13 項通過（§4、§5、§6.1、§6.2、§8.1、§8.2 的預期輸出）。
+
+### `:app`
+- ⚙ 選單新增「AI模型設定」→ `AiSettingsActivity`：三家 API key（Keystore 加密）、各用途供應商下拉選單＋模型（建議清單／API 取得的清單／自行輸入）、測試連線、測試模型、麥克風授權、語音選項。
+- 🎤 開啟語音面板；鍵盤收起時一定停止錄音。
+- 編輯面板 AI 欄可用：潤飾／潤飾全文、AI 寫作、翻英／翻英全文；完成後候選列「↶ 還原原文」。
+- `AppVoiceTerms`：自建詞（2 字以上）＋英文詞 → 語音個人詞典。
+
+### 契約變更（REQUESTS R1 已實作）
+- `SecretProvider` 新增 MINIMAX；新增 `TextRewriter`（阻塞式，背景執行緒呼叫）。
+- `VoiceModule.createPanelView` 多 host 參數；新增 `createRewriter`、`addStateListener`、`onPanelShown`；移除 Compose 的 SettingsScreen。
+
+### 尚未驗證
+- 全部對 Android API 35 編譯通過、純邏輯測試通過；**錄音、真實 API 呼叫都尚未實機驗證**。
+- 靜音門檻 `SILENCE_RMS = 0.008` 需用倬的手機校正（Logcat tag `VoiceController` 會印 peakRms／voicedFrames，不含文字）。
+- MiniMax 官方 API 是否能關閉推理（思考）未確認；輸出中的 <think> 會被清洗，但延遲可能較長。
+
 ## 2026-10-10（實機測試回饋 14 項）
 
 倬在 OPPO Reno 14F 實機安裝成功後回報 14 項，全部處理：

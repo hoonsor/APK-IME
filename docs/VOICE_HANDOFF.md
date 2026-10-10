@@ -1,3 +1,5 @@
+> **2026-10-10 更新**：語音模組已由對話 A 依 `docs/MOBILE_VOICE_HANDOFF.md` 實作完成（見 `docs/STATUS_ZHUYIN.md`、REQUESTS R1／R3）。以下為原始交接內容，僅供參考。
+
 # 對話 B 交接：語音模組（Typeless 等級）
 
 > 把這份文件連同專案一起交給新對話。開頭直接說：「請讀 docs/VOICE_HANDOFF.md，開始開發語音模組」。

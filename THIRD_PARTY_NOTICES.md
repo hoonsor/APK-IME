@@ -26,8 +26,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 ## OpenCC 繁簡轉換表
 
-`app/src/main/assets/opencc_ts_chars.txt`、`opencc_ts_phrases.txt` 取自 OpenCC
-（https://github.com/BYVoid/OpenCC，`data/dictionary/TSCharacters.txt`、`TSPhrases.txt`）。
+`app/src/main/assets/opencc_ts_chars.txt`、`opencc_ts_phrases.txt`（繁→簡）與
+`feature/voice/src/main/assets/opencc_st_phrases.txt`、`opencc_st_chars.txt`、`opencc_tw_variants.txt`（簡→台灣繁體，s2tw）取自 OpenCC
+（https://github.com/BYVoid/OpenCC，`data/dictionary/` 下的 TSCharacters、TSPhrases、STPhrases、STCharacters、TWVariants）。
 
 Apache License 2.0 — Copyright (c) 2010-2026 Carbo Kuo and contributors.
 全文：http://www.apache.org/licenses/LICENSE-2.0
