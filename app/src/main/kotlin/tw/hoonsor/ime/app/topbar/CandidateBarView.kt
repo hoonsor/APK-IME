@@ -44,6 +44,12 @@ class CandidateBarView(context: Context) : LinearLayout(context) {
     var onLongPick: ((Int) -> Unit)? = null
     var onExpand: (() -> Unit)? = null
     var onChipClick: (() -> Unit)? = null
+    /** 在候選列上下滑（回到工具列）。 */
+    var onSwipeVertical: (() -> Unit)? = null
+
+    private var downX = 0f
+    private var downY = 0f
+    private var swiped = false
 
     private val scroll = HorizontalScrollView(context)
     private val row = LinearLayout(context)
@@ -110,6 +116,8 @@ class CandidateBarView(context: Context) : LinearLayout(context) {
                 tv.visibility = VISIBLE
                 val badge = when (item.badge) { "U" -> "ᵁ"; "C" -> "ᶜ"; else -> "" }
                 tv.text = item.text + badge
+                // 英文、數字、符號字形比中文寬，用小一號的字（例如「abc@gmail.com ＋」）
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isLatin(item.text)) 19f else 28f)
                 when {
                     item.danger -> { tv.setTextColor(0xFFFFFFFF.toInt()); tv.setBackgroundColor(0xFFB3403A.toInt()) }
                     item.accent -> { tv.setTextColor(Palette.ACCENT); tv.background = null }
@@ -124,6 +132,30 @@ class CandidateBarView(context: Context) : LinearLayout(context) {
         }
         scroll.scrollTo(0, 0)
     }
+
+    private fun isLatin(t: String): Boolean {
+        val core = t.filter { !it.isWhitespace() && it != '＋' && it != '✓' }
+        return core.isNotEmpty() && core.count { it.code < 0x2E80 } * 2 > core.length
+    }
+
+    /** 上下滑偵測：垂直位移明顯大於水平時攔截觸控（子項目會收到 CANCEL，不會誤選）。 */
+    override fun onInterceptTouchEvent(e: android.view.MotionEvent): Boolean {
+        when (e.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> { downX = e.x; downY = e.y; swiped = false }
+            android.view.MotionEvent.ACTION_MOVE -> {
+                val dx = kotlin.math.abs(e.x - downX)
+                val dy = kotlin.math.abs(e.y - downY)
+                if (!swiped && dy > dp(18f) && dy > dx * 1.5f) {
+                    swiped = true
+                    onSwipeVertical?.invoke()
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    override fun onTouchEvent(e: android.view.MotionEvent): Boolean = swiped || super.onTouchEvent(e)
 
     /**
      * 點擊與長按（長按需 0.8 秒，避免誤刪；倬需求六）。

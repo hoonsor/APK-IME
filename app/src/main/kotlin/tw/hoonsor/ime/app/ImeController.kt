@@ -133,7 +133,11 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     private enum class Layout { ZHUYIN, ENGLISH, SYMBOL }
 
     /** 候選列目前顯示的是什麼（決定點選後要做什麼）。 */
-    private enum class BarKind { NONE, CANDIDATES, ASSOC, WORD, DELETE, AI }
+    private enum class BarKind { NONE, CANDIDATES, ASSOC, WORD, DELETE, AI, NOTICE }
+
+    /** 候選列上的提示訊息（部分手機的輸入法 Toast 不會顯示，所以提示也放在候選列）。 */
+    private var notice: String? = null
+    private var noticeToken = 0
 
     private var layout = Layout.ZHUYIN
     private var symbolSet = FanItem.FULL
@@ -247,6 +251,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
             onLongPick = ::longPick
             onExpand = { if (barKind == BarKind.CANDIDATES) toggleOverlay(Overlay.CANDIDATES) }
             onChipClick = { clips.recent?.let { pasteClip(it.text) } }
+            onSwipeVertical = ::dismissBar
             visibility = View.GONE
         }
         topBar.addView(toolbar, match())
@@ -345,6 +350,10 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         pinned = false
         wordBuf.setLength(0)
         pendingDelete = null
+        notice = null
+        // 換輸入框時以 EditorInfo 的游標位置為準（空白輸入框不一定會再通知選取變化）
+        selStart = info?.initialSelStart ?: -1
+        selEnd = info?.initialSelEnd ?: -1
         confirmClear = false
         aiUndo = null
         aiBusy = false
@@ -445,6 +454,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
             pd != null -> BarKind.DELETE
             aiBusy || (aiUndo != null && !composing) -> BarKind.AI
             composing -> BarKind.CANDIDATES
+            notice != null -> BarKind.NOTICE
             wordBuf.isNotEmpty() && (layout != Layout.ZHUYIN || wordBuf.length >= 2) -> BarKind.WORD
             assoc.isNotEmpty() -> BarKind.ASSOC
             else -> BarKind.NONE
@@ -468,6 +478,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
             BarKind.ASSOC -> assoc.map { CandItem(display(it.text)) }
             BarKind.AI -> if (aiBusy) listOf(CandItem("✦ AI 處理中…", accent = true), CandItem("取消"))
                 else listOf(CandItem("✦ 已改寫", accent = true), CandItem("↶ 還原原文"), CandItem("✓ 保留"))
+            BarKind.NOTICE -> listOf(CandItem(notice!!, accent = true))
             BarKind.NONE -> emptyList()
         }
         val chip = clipChip()
@@ -575,8 +586,27 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
                     if (i >= 1) aiUndo = null
                 }
             }
+            BarKind.NOTICE -> notice = null
             BarKind.NONE -> {}
         }
+        render()
+    }
+
+    /**
+     * 在候選列上下滑：收起聯想詞／英文詞／提示，回到工具列（左右滑仍是捲動候選列）。
+     * 正在組字時不收起（候選字還要用）。
+     */
+    private fun dismissBar() {
+        when (barKind) {
+            BarKind.CANDIDATES -> return
+            BarKind.AI -> if (aiBusy) return else aiUndo = null
+            BarKind.DELETE -> pendingDelete = null
+            else -> {}
+        }
+        assoc = emptyList()
+        wordBuf.setLength(0)
+        notice = null
+        clips.dismissRecent()
         render()
     }
 
@@ -600,6 +630,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         val e = engine
         pendingDelete = null
         aiUndo = null
+        notice = null
         clips.dismissRecent()
         when (val a = key.action) {
             is KeyAction.Zhuyin -> {
@@ -610,7 +641,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
             }
             is KeyAction.Commit -> {
                 if (e?.state?.isComposing == true) commitComposing()
-                currentTarget.commitText(a.text)
+                commitSymbol(a.text)
                 assoc = emptyList()
                 trackWord(a.text)
                 // 符號打一個就回到「進入符號前」的鍵盤（英文→符號→英文），連續輸入的英文詞不中斷
@@ -662,6 +693,21 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         render()
     }
 
+    /**
+     * 成對符號：輸入前符號時自動補上後符號，游標放在中間；
+     * 輸入後符號時，若游標後面正好是自動補上的同一個後符號，就直接跳過它（不會變成兩個）。
+     * 剪貼簿搜尋模式、密碼欄位不配對。
+     */
+    private fun commitSymbol(text: String) {
+        val t = currentTarget
+        if (t === imeTarget && !t.hints.isPassword) {
+            val close = PAIRS[text]
+            if (close != null) { imeTarget.commitPair(text, close); return }
+            if (text in CLOSERS && imeTarget.skipIfNext(text)) return
+        }
+        t.commitText(text)
+    }
+
     /** 大寫鍵：點一下 = 下一個字母大寫；快速點兩下 = 大寫鎖定；鎖定中再點一下 = 解除（需求二）。 */
     private fun onShift() {
         val now = SystemClock.uptimeMillis()
@@ -684,7 +730,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
 
     override fun onPunct(text: String) {
         commitComposing()
-        currentTarget.commitText(text)
+        commitSymbol(text)
         assoc = emptyList()
         wordBuf.setLength(0)
         pendingDelete = null
@@ -787,7 +833,12 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     // 編輯面板
     // =====================================================================
 
-    private val hasSelection get() = editor.selecting || (selStart >= 0 && selStart != selEnd)
+    /** 以輸入框實際的選取為準；讀不到選取文字的 App 才退回游標位置判斷。 */
+    private val hasSelection: Boolean get() {
+        if (editor.selecting) return true
+        val t = try { imeTarget.selectedText() } catch (e: Exception) { null }
+        return t != null || (selStart >= 0 && selEnd >= 0 && selStart != selEnd)
+    }
 
     private fun refreshEditTiles() {
         val sel = hasSelection
@@ -907,8 +958,14 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         if (hints.isPassword) { toast("密碼欄位不使用 AI"); return }
         val sel = imeTarget.selectedText()?.toString()?.takeIf { it.isNotBlank() }
         val whole = sel == null
-        val text = sel ?: editor.fullText()?.takeIf { it.isNotBlank() }
-        if (text == null) { toast("輸入框沒有文字"); return }
+        // 全文：用游標前後的文字組成（比 getExtractedText 更多 App 支援），完成後刪掉前後再寫入
+        val before = if (whole) imeTarget.textBeforeCursor(5000)?.toString().orEmpty() else ""
+        val after = if (whole) imeTarget.textAfterCursor(5000)?.toString().orEmpty() else ""
+        val text = sel ?: (before + after).takeIf { it.isNotBlank() }
+        if (text == null) {
+            toast(if (id == "ai2") "先打一段要 AI 寫的內容（例如：跟客戶說交期延後一天，語氣客氣），再按 AI 寫作" else "輸入框沒有文字")
+            return
+        }
         if (text.length > 4000) { toast("文字太長（最多 4000 字）"); return }
         showOverlay(Overlay.NONE)
         val token = ++aiToken
@@ -925,8 +982,15 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
                 if (token != aiToken) return@post   // 已取消或換了輸入框
                 aiBusy = false
                 r.onSuccess { out ->
-                    if (whole) editor.selectAll()
-                    imeTarget.replaceSelection(out)
+                    if (whole) {
+                        // 文字在等待期間被改過就不覆蓋，避免吃掉使用者新打的字
+                        val nb = imeTarget.textBeforeCursor(5000)?.toString().orEmpty()
+                        val na = imeTarget.textAfterCursor(5000)?.toString().orEmpty()
+                        if (nb + na != text) { toast("文字已改變，AI 結果未套用"); render(); return@post }
+                        imeTarget.replaceAround(na.length, nb.length, out)
+                    } else {
+                        imeTarget.replaceSelection(out)
+                    }
                     aiUndo = text to out
                 }.onFailure { e ->
                     toast("AI 失敗：${e.message}")
@@ -1048,12 +1112,33 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         if (!loadNotified) { toast("詞庫載入中，請稍候…"); loadNotified = true }
     }
 
-    private fun toast(msg: String) = Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
+    /**
+     * 提示訊息：鍵盤顯示中時放在候選列（ColorOS 等系統常不顯示輸入法的 Toast），3 秒後自動消失；
+     * 其他情況用 Toast。
+     */
+    private fun toast(msg: String) {
+        if (viewReady && root.isShown && panels.mode == PanelMode.KEYBOARD) {
+            notice = msg
+            val token = ++noticeToken
+            main.post { render() }
+            main.postDelayed({ if (token == noticeToken && notice == msg) { notice = null; render() } }, 3000)
+        } else {
+            Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     companion object {
         private const val TAG = "ImeController"
         const val COMPOSING_DP = 32f
         const val TOPBAR_DP = 52f
+
+        /** 自動配對的成對符號（半形的 < > 與引號 " ' 前後同字，不配對，避免打程式碼或比較符號時多出字）。 */
+        private val PAIRS = mapOf(
+            "(" to ")", "[" to "]", "{" to "}",
+            "（" to "）", "［" to "］", "｛" to "｝", "「" to "」", "『" to "』", "【" to "】",
+            "《" to "》", "〈" to "〉", "〔" to "〕", "“" to "”", "‘" to "’", "〖" to "〗",
+        )
+        private val CLOSERS = PAIRS.values.toSet()
         private const val MAX_BAR = 40
         private const val DOUBLE_TAP_MS = 350L
     }

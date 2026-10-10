@@ -61,6 +61,36 @@ class ImeTextTarget(
         conn.deleteSurroundingText(beforeLength, afterLength)
     }
 
+    /** 成對符號：插入前後符號，游標停在中間。 */
+    fun commitPair(open: String, close: String) {
+        val conn = ic() ?: return
+        conn.beginBatchEdit()
+        conn.commitText(open, 1)
+        conn.commitText(close, 0)   // 0 = 游標放在這段文字的前面
+        conn.endBatchEdit()
+    }
+
+    /** 游標後面正好是 close（自動補上的後符號）→ 游標跳過它，回傳 true；否則回傳 false。 */
+    fun skipIfNext(close: String): Boolean {
+        val conn = ic() ?: return false
+        if (!conn.getSelectedText(0).isNullOrEmpty()) return false
+        if (conn.getTextAfterCursor(close.length, 0)?.toString() != close) return false
+        conn.beginBatchEdit()
+        conn.deleteSurroundingText(0, close.length)
+        conn.commitText(close, 1)
+        conn.endBatchEdit()
+        return true
+    }
+
+    /** 刪掉游標前 before、後 after 個字元，寫入 text（AI 全文改寫用）。 */
+    fun replaceAround(after: Int, before: Int, text: String) {
+        val conn = ic() ?: return
+        conn.beginBatchEdit()
+        conn.deleteSurroundingText(before, after)
+        conn.commitText(text, 1)
+        conn.endBatchEdit()
+    }
+
     /** Enter：單行輸入框執行動作（送出、搜尋…），多行則換行。 */
     fun enter() {
         val conn = ic() ?: return

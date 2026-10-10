@@ -70,11 +70,17 @@ class VoicePanelView(
             modeViews[m] = v
             modes.addView(v, LayoutParams(LayoutParams.WRAP_CONTENT, dpi(34f)).apply { marginEnd = dpi(6f) })
         }
+        // 取消／還原原文放在模式列右側（原本放在中間會被下方按鍵列遮住）
+        modes.addView(android.view.View(context), LayoutParams(0, 1, 1f))
+        actionCancel.setOnClickListener { controller.cancel() }
+        actionRevert.setOnClickListener { controller.revertLastToRaw() }
+        modes.addView(actionCancel, LayoutParams(LayoutParams.WRAP_CONTENT, dpi(34f)).apply { marginStart = dpi(6f) })
+        modes.addView(actionRevert, LayoutParams(LayoutParams.WRAP_CONTENT, dpi(34f)).apply { marginStart = dpi(6f) })
         addView(modes, LayoutParams(LayoutParams.MATCH_PARENT, dpi(46f)))
 
         // 波形與狀態
         val center = LinearLayout(context).apply { orientation = VERTICAL; gravity = Gravity.CENTER }
-        center.addView(wave, LayoutParams(LayoutParams.MATCH_PARENT, dpi(40f)))
+        center.addView(wave, LayoutParams(LayoutParams.MATCH_PARENT, dpi(30f)))
         status.apply {
             setTextColor(MUTED)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
@@ -83,12 +89,6 @@ class VoicePanelView(
             setOnClickListener { if ((state as? VoiceState.Error)?.code in setOf(VoiceErrorCode.NO_MIC_PERMISSION, VoiceErrorCode.NO_API_KEY)) host.openSettings() }
         }
         center.addView(status, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
-        val actions = LinearLayout(context).apply { orientation = HORIZONTAL; gravity = Gravity.CENTER }
-        actionCancel.setOnClickListener { controller.cancel() }
-        actionRevert.setOnClickListener { controller.revertLastToRaw() }
-        actions.addView(actionCancel, LayoutParams(LayoutParams.WRAP_CONTENT, dpi(32f)).apply { marginEnd = dpi(8f) })
-        actions.addView(actionRevert, LayoutParams(LayoutParams.WRAP_CONTENT, dpi(32f)))
-        center.addView(actions, LayoutParams(LayoutParams.MATCH_PARENT, dpi(36f)).apply { topMargin = dpi(4f) })
         addView(center, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
 
         // 快速標點列
