@@ -148,6 +148,9 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
 
     /** 需求七：連續輸入的英文字母＋符號（例如 abc@gmail.com），可一鍵加入字典。 */
     private val wordBuf = StringBuilder()
+
+    /** 扇子切到符號／數字鍵盤之前的鍵盤，符號打完或按返回鍵時回到這裡。 */
+    private var returnLayout = Layout.ZHUYIN
     private var wordMatches: List<String> = emptyList()
 
     /** 需求六：長按自建詞後等待確認刪除。 */
@@ -358,6 +361,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
             hints.fieldType == FieldType.EMAIL || hints.fieldType == FieldType.URI -> Layout.ENGLISH
             else -> Layout.ZHUYIN
         }
+        returnLayout = if (layout == Layout.ENGLISH) Layout.ENGLISH else Layout.ZHUYIN
         keyboard.haptics = prefs.haptics
         toolbar.simplified = prefs.simplified
         toolbar.buttons = ToolButton.entries.filter { it != ToolButton.CLIPBOARD || prefs.toolbarClipboard }
@@ -422,7 +426,10 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         keyboard.setRows(when (layout) {
             Layout.ZHUYIN -> KeyboardLayouts.ZHUYIN
             Layout.ENGLISH -> KeyboardLayouts.english(shiftState > 0, prefs.numberRow)
-            Layout.SYMBOL -> if (symbolSet == FanItem.NUM) KeyboardLayouts.DIALER else KeyboardLayouts.symbols(symbolSet, pinned)
+            Layout.SYMBOL -> {
+                val back = if (returnLayout == Layout.ENGLISH) "ABC" else "ㄅㄆㄇ"
+                if (symbolSet == FanItem.NUM) KeyboardLayouts.dialer(back) else KeyboardLayouts.symbols(symbolSet, pinned, back)
+            }
         })
     }
 
@@ -438,7 +445,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
             pd != null -> BarKind.DELETE
             aiBusy || (aiUndo != null && !composing) -> BarKind.AI
             composing -> BarKind.CANDIDATES
-            wordBuf.isNotEmpty() && layout != Layout.ZHUYIN -> BarKind.WORD
+            wordBuf.isNotEmpty() && (layout != Layout.ZHUYIN || wordBuf.length >= 2) -> BarKind.WORD
             assoc.isNotEmpty() -> BarKind.ASSOC
             else -> BarKind.NONE
         }
@@ -606,7 +613,8 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
                 currentTarget.commitText(a.text)
                 assoc = emptyList()
                 trackWord(a.text)
-                if (layout == Layout.SYMBOL && !symbolSticky) { layout = Layout.ZHUYIN; applyLayout() }
+                // 符號打一個就回到「進入符號前」的鍵盤（英文→符號→英文），連續輸入的英文詞不中斷
+                if (layout == Layout.SYMBOL && !symbolSticky) { layout = returnLayout; applyLayout() }
                 if (layout == Layout.ENGLISH && shiftState == 1) { shiftState = 0; applyLayout() }
             }
             KeyAction.Space -> {
@@ -636,8 +644,18 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
                 }
             }
             KeyAction.Shift -> onShift()
-            KeyAction.ToEnglish -> { commitComposing(); wordBuf.setLength(0); layout = Layout.ENGLISH; shiftState = 0; applyLayout() }
-            KeyAction.ToZhuyin -> { layout = Layout.ZHUYIN; pinned = false; wordBuf.setLength(0); applyLayout() }
+            KeyAction.ToEnglish -> { commitComposing(); layout = Layout.ENGLISH; shiftState = 0; applyLayout() }
+            KeyAction.ToZhuyin -> {
+                // 符號／數字鍵盤的返回鍵：回到進入前的鍵盤；從英文來的就回英文，英文詞繼續累積
+                if (layout == Layout.SYMBOL && returnLayout == Layout.ENGLISH) {
+                    layout = Layout.ENGLISH
+                } else {
+                    layout = Layout.ZHUYIN
+                    wordBuf.setLength(0)
+                }
+                pinned = false
+                applyLayout()
+            }
             KeyAction.Pin -> { pinned = !pinned; applyLayout() }
             KeyAction.Fan, KeyAction.Punct -> {} // 由手勢回呼處理
         }
@@ -688,6 +706,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
             return
         }
         commitComposing()
+        if (layout != Layout.SYMBOL) returnLayout = layout
         symbolSet = item
         pinned = false
         layout = Layout.SYMBOL

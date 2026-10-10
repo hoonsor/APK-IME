@@ -91,14 +91,16 @@ class CandidateBarView(context: Context) : LinearLayout(context) {
         while (pool.size < items.size) {
             val i = pool.size
             val tv = TextView(context).apply {
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+                // 字放大約 27%（22→28sp），左右留白 12→6dp 抵銷，一排顯示的詞數大致不變
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
+                includeFontPadding = false
                 gravity = Gravity.CENTER
-                setPadding(dpi(12f), 0, dpi(12f), 0)
+                setPadding(dpi(6f), 0, dpi(6f), 0)
                 maxLines = 1
                 setOnTouchListener(PressListener(i))
             }
             pool += tv
-            row.addView(tv, LayoutParams(LayoutParams.WRAP_CONTENT, dpi(44f)))
+            row.addView(tv, LayoutParams(LayoutParams.WRAP_CONTENT, dpi(48f)))
         }
         pool.forEachIndexed { i, tv ->
             val item = items.getOrNull(i)

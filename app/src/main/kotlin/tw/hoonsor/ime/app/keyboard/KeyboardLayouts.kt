@@ -72,18 +72,18 @@ object KeyboardLayouts {
 
     /**
      * 數字鍵盤：仿手機撥號鍵盤（倬：超注音的數字鍵盤是撥號盤樣式）。
-     * 連續輸入不會跳回注音，按「ㄅㄆㄇ」才回去。
+     * 連續輸入不會跳回，按左下角鍵才回到原本的鍵盤（注音或英文）。
      */
-    val DIALER: List<List<KeyDef>> by lazy {
+    fun dialer(backLabel: String): List<List<KeyDef>> {
         fun d(t: String) = KeyDef(t, KeyAction.Commit(t), weight = 1.3f, textSizeSp = 28f)
         fun side(t: String) = KeyDef(t, KeyAction.Commit(t), style = KeyStyle.DARK, textSizeSp = 22f)
-        listOf(
+        return listOf(
             listOf(d("1"), d("2"), d("3"), side("-")),
             listOf(d("4"), d("5"), d("6"), side(".")),
             listOf(d("7"), d("8"), d("9"), KeyDef("", KeyAction.Backspace, style = KeyStyle.DARK)),
             listOf(d("*"), d("0"), d("#"), KeyDef("", KeyAction.Enter, style = KeyStyle.DARK)),
             listOf(
-                KeyDef("ㄅㄆㄇ", KeyAction.ToZhuyin, weight = 1.3f, style = KeyStyle.DARK, textSizeSp = 16f),
+                KeyDef(backLabel, KeyAction.ToZhuyin, weight = 1.3f, style = KeyStyle.DARK, textSizeSp = 16f),
                 KeyDef(",", KeyAction.Commit(","), weight = 0.9f),
                 KeyDef("", KeyAction.Space, weight = 1.7f),
                 KeyDef("+", KeyAction.Commit("+"), weight = 0.9f),
@@ -125,8 +125,11 @@ object KeyboardLayouts {
         "( ˘•ω•˘ )", "(ﾟ∀ﾟ)", "(≧∇≦)/", "┐(´д`)┌", "(๑•̀ㅂ•́)و✧", "(〃∀〃)",
     )
 
-    /** 符號鍵盤：內容 + 控制列（回注音、圖釘、空白、刪除、換行）。 */
-    fun symbols(item: FanItem, pinned: Boolean): List<List<KeyDef>> {
+    /**
+     * 符號鍵盤：內容 + 控制列（返回、圖釘、空白、刪除、換行）。
+     * backLabel：返回鍵顯示「ㄅㄆㄇ」或「ABC」，依進入符號鍵盤前的鍵盤而定。
+     */
+    fun symbols(item: FanItem, pinned: Boolean, backLabel: String = "ㄅㄆㄇ"): List<List<KeyDef>> {
         val (items, perRow, size) = when (item) {
             FanItem.HALF -> Triple(HALF, 8, 22f)
             FanItem.FULL -> Triple(FULL, 8, 22f)
@@ -138,7 +141,7 @@ object KeyboardLayouts {
             row.map { KeyDef(it, KeyAction.Commit(it), textSizeSp = size) }
         }.toMutableList()
         rows += listOf(
-            KeyDef("ㄅㄆㄇ", KeyAction.ToZhuyin, weight = 1.4f, style = KeyStyle.DARK, textSizeSp = 15f),
+            KeyDef(backLabel, KeyAction.ToZhuyin, weight = 1.4f, style = KeyStyle.DARK, textSizeSp = 15f),
             KeyDef(if (pinned) "📌 鎖定" else "📌", KeyAction.Pin, weight = 1.2f, style = KeyStyle.DARK, textSizeSp = 15f),
             KeyDef("", KeyAction.Space, weight = 2.4f),
             KeyDef("", KeyAction.Backspace, weight = 1.2f, style = KeyStyle.DARK),

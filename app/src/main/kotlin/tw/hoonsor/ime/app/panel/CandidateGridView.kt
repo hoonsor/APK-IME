@@ -37,11 +37,11 @@ class CandidateGridView(context: Context) : ScrollView(context) {
     private inner class Flow(context: Context) : View(context) {
         var items: List<CandItem> = emptyList()
         private val rects = ArrayList<RectF>()
-        private val paint = textPaint(Palette.TEXT, dp(22f))
-        private val hiPaint = textPaint(Palette.HILITE_TEXT, dp(22f))
+        private val paint = textPaint(Palette.TEXT, dp(27f))
+        private val hiPaint = textPaint(Palette.HILITE_TEXT, dp(27f))
         private val hiBg = fillPaint(Palette.HILITE_BG)
         private val cell = fillPaint(Palette.KEY_DARK)
-        private val cellH = dp(48f)
+        private val cellH = dp(52f)
         private val gap = dp(6f)
         private var downX = 0f
         private var downY = 0f
@@ -50,7 +50,7 @@ class CandidateGridView(context: Context) : ScrollView(context) {
             rects.clear()
             var x = gap; var y = gap
             for (it in items) {
-                val cw = maxOf(paint.measureText(it.text) + dp(24f), dp(52f))
+                val cw = maxOf(paint.measureText(it.text) + dp(16f), dp(52f))
                 if (x + cw > w - gap && x > gap) { x = gap; y += cellH + gap }
                 rects += RectF(x, y, x + cw, y + cellH)
                 x += cw + gap
