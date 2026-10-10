@@ -91,7 +91,8 @@ class FanOverlayView(context: Context) : View(context) {
 
     private fun layoutTiles() {
         tiles.clear()
-        if (items.isEmpty()) return
+        // 尚未量測寬度時不計算（否則 coerceIn 範圍無效會讓輸入法當掉）；onSizeChanged 會再呼叫一次
+        if (items.isEmpty() || width <= tile + dp(8f)) return
         val from = -106.0
         val to = if (items.size <= 4) -28.0 else -8.0
         items.forEachIndexed { i, item ->

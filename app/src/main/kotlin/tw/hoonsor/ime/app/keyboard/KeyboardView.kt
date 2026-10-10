@@ -193,6 +193,17 @@ class KeyboardView(context: Context) : View(context) {
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(e: MotionEvent): Boolean {
+        try {
+            handleTouch(e)
+        } catch (ex: Exception) {
+            android.util.Log.e("KeyboardView", "touch error", ex)
+            pressed = null
+            invalidate()
+        }
+        return true
+    }
+
+    private fun handleTouch(e: MotionEvent) {
         val idx = e.actionIndex
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> press(e.getX(idx), e.getY(idx))
@@ -202,7 +213,7 @@ class KeyboardView(context: Context) : View(context) {
                 press(e.getX(idx), e.getY(idx))
             }
             MotionEvent.ACTION_MOVE -> {
-                val k = pressed ?: return true
+                val k = pressed ?: return
                 if (k.action == KeyAction.Fan) {
                     val x = e.getX(0); val y = e.getY(0)
                     if (abs(x - downX) > dp(10f) || abs(y - downY) > dp(10f)) fanDragged = true
@@ -216,7 +227,6 @@ class KeyboardView(context: Context) : View(context) {
             }
             MotionEvent.ACTION_CANCEL -> cancelPress()
         }
-        return true
     }
 
     private fun press(x: Float, y: Float) {

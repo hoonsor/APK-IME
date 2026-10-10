@@ -34,6 +34,11 @@ class SettingsActivity : Activity() {
             val p = dpi(20f)
             setPadding(p, p, p, p)
         }
+        col.addView(TextView(this).apply {
+            text = "倬注音"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
+            setPadding(0, dpi(4f), 0, dpi(4f))
+        })
         fun title(t: String) = col.addView(TextView(this).apply {
             text = t
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
@@ -88,7 +93,20 @@ class SettingsActivity : Activity() {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
         })
 
-        setContentView(ScrollView(this).apply { addView(col) })
+        val scroll = ScrollView(this).apply {
+            addView(col)
+            isFillViewport = true
+            // Android 15+ 強制全螢幕：上方狀態列、下方手勢列的空間要自己留，否則內容會被蓋住
+            setOnApplyWindowInsetsListener { v, insets ->
+                val bars = if (android.os.Build.VERSION.SDK_INT >= 30)
+                    insets.getInsets(android.view.WindowInsets.Type.systemBars() or android.view.WindowInsets.Type.ime())
+                else null
+                @Suppress("DEPRECATION")
+                v.setPadding(0, bars?.top ?: insets.systemWindowInsetTop, 0, bars?.bottom ?: insets.systemWindowInsetBottom)
+                insets
+            }
+        }
+        setContentView(scroll)
     }
 
     @Deprecated("Framework Activity API")
