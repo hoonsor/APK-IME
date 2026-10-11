@@ -1,6 +1,6 @@
 # 倬注音（APK-IME）— 專案狀態
 
-> 目前版本：v0.5.1 ｜ 最後更新：2026/10/11 21:50
+> 目前版本：v0.5.2 ｜ 最後更新：2026/10/11 21:55
 
 ## 📌 專案概述
 個人自用的 Android 輸入法：超注音式簡拼注音鍵盤，加上 Typeless 等級的 AI 語音輸入與 AI 改寫，兩者共用同一份個人詞庫。側載 debug APK 使用（OPPO Reno 14F），穩定性第一。詳細每日紀錄見 `docs/STATUS_ZHUYIN.md`。
@@ -13,7 +13,7 @@
 - [x] 英文詞加入字典不中斷、候選字放大（2026/10/11）
 - [x] 編輯面板選取判斷、AI 全文改寫、候選列提示與上下滑、成對符號、語音面板版面（2026/10/11）
 - [x] 符號表擴充與翻頁、備用 API key、額度用完提醒（2026/10/11）
-- [x] 推上 GitHub（hoonsor/APK-IME）、README、CLAUDE.md、版本 tag（2026/10/11）
+- [x] 推上 GitHub（hoonsor/APK-IME）、README、CLAUDE.md、PROJECT_STATUS.md 版本歷程（2026/10/11）
 - [ ] 實機驗證：錄音與真實 API 呼叫、靜音門檻 `SILENCE_RMS` 校正、MiniMax 延遲
 - [ ] 實機驗證：符號翻頁、成對符號、額度提醒視窗、AI 全文改寫
 
@@ -28,11 +28,12 @@
 | 用多個 Groq 帳號繞過額度違反 Groq 條款 | 規範 | 備用 key 只放同帳號其他專案或付費 key |
 
 ## 🕘 版本歷程
-回滾方式：`git revert <commit>` 撤銷單一變更；`git checkout vX.Y.Z` 檢視舊版（Android Studio：Git → Branches → Tags）。
+回滾方式：`git revert <commit>` 撤銷單一變更；`git checkout <commit>` 檢視舊版（Android Studio：Git → Log，在該筆提交按右鍵 → Checkout Revision）。版本 tag 目前只存在雲端工作副本（雲端環境無法推送 tag），以 Commit 欄為準。
 
 | 版本 | 日期 | Commit | 變更內容 |
 |---|---|---|---|
-| v0.5.1 | 2026/10/11 | tag v0.5.1 | docs: 新增 CLAUDE.md、PROJECT_STATUS.md，補上歷史版本 tag |
+| v0.5.2 | 2026/10/11 | （見下一筆提交） | docs: 版本歷程補上 v0.5.1 commit、回滾說明改用 commit hash |
+| v0.5.1 | 2026/10/11 | 33ba0ed | docs: 新增 CLAUDE.md、PROJECT_STATUS.md，補上歷史版本 tag |
 | v0.5.0 | 2026/10/11 | 391aaec | feat: 符號表擴充與翻頁、備用 API key、額度用完提醒（README 於 1f3ed7b 更新） |
 | v0.4.2 | 2026/10/11 | 8c7c00a | feat: 編輯面板選取判斷、AI 全文、候選列提示與上下滑、成對符號、語音面板版面 |
 | v0.4.1 | 2026/10/11 | 04501d7 | fix: 符號打完回到原鍵盤（英文詞加入字典不中斷）、候選字放大 |
