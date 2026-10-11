@@ -13,6 +13,6 @@ interface SecretStore {
 enum class SecretProvider {
     OPENAI, ANTHROPIC, GROQ, GOOGLE, MINIMAX,
 
-    /** 備用 key（例如第二個 Groq 帳號）：主要 key 額度用完時自動改用。 */
+    /** 備用 key（同帳號其他專案或付費 key）：主要 key 額度用完時自動改用。 */
     GROQ_2, MINIMAX_2, OPENAI_2,
 }

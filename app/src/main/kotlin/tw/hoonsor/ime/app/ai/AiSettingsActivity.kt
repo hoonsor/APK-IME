@@ -157,7 +157,7 @@ class AiSettingsActivity : Activity() {
         return wrap(box)
     }
 
-    /** 備用 key（倬：Groq 註冊了兩個帳號）：主要 key 免費額度用完時自動改用。 */
+    /** 備用 key：主要 key 額度用完時自動改用（同帳號其他專案或付費 key）。 */
     private fun backupKeyBlock(p: AiProvider): View {
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dpi(10f), 0, 0) }
         val status = text("", 13f, alpha = 0.8f)
@@ -167,7 +167,7 @@ class AiSettingsActivity : Activity() {
         head.addView(text("備用 API key", 15f), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         head.addView(status)
         col.addView(head)
-        col.addView(text("主要 key 的免費額度用完時自動改用（例如第二個帳號的 key）。", 12f, alpha = 0.7f))
+        col.addView(text("主要 key 額度用完時自動改用（例如同帳號其他專案的 key 或付費 key；請遵守各供應商條款，Groq 禁止用多個帳號繞過額度）。", 12f, alpha = 0.7f))
         val input = EditText(this).apply {
             hint = "貼上備用的 ${p.label} API key"
             setSingleLine()

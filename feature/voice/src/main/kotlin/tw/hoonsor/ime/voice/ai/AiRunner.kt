@@ -25,7 +25,7 @@ internal fun <T> runSuspend(block: suspend () -> T): T {
 /**
  * 依設定呼叫模型。所有方法都會阻塞，請在背景執行緒呼叫。
  *
- * 失敗處理順序（倬：Groq 有兩個帳號）：
+ * 失敗處理順序：
  * 1. 主要模型 × 主要 key → 額度用完（429）→ 主要模型 × 備用 key
  * 2. 還是失敗 → 備援模型（同樣先主要 key、再備用 key）
  * 3. 全部因額度失敗 → 拋出 QUOTA，並通知 [quotaListener]（鍵盤跳出提醒）
