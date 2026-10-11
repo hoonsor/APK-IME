@@ -8,21 +8,23 @@ enum class AiProvider(
     val label: String,
     val defaultBase: String,
     val secret: SecretProvider,
+    /** 備用 key：主要 key 額度用完（HTTP 429）時自動改用。 */
+    val backupSecret: SecretProvider,
     val sttModels: List<String>,
     val chatModels: List<String>,
 ) {
     GROQ(
-        "Groq", "https://api.groq.com/openai/v1", SecretProvider.GROQ,
+        "Groq", "https://api.groq.com/openai/v1", SecretProvider.GROQ, SecretProvider.GROQ_2,
         sttModels = listOf("whisper-large-v3", "whisper-large-v3-turbo"),
         chatModels = listOf("qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"),
     ),
     MINIMAX(
-        "MiniMax", "https://api.minimax.io/v1", SecretProvider.MINIMAX,
+        "MiniMax", "https://api.minimax.io/v1", SecretProvider.MINIMAX, SecretProvider.MINIMAX_2,
         sttModels = emptyList(),
         chatModels = listOf("MiniMax-M3"),
     ),
     OPENAI(
-        "OpenAI", "https://api.openai.com/v1", SecretProvider.OPENAI,
+        "OpenAI", "https://api.openai.com/v1", SecretProvider.OPENAI, SecretProvider.OPENAI_2,
         sttModels = listOf("gpt-4o-transcribe", "gpt-4o-mini-transcribe"),
         chatModels = listOf("gpt-4.1-mini", "gpt-4o-mini"),
     ),

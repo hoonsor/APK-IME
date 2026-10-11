@@ -129,7 +129,10 @@ class AiSettingsActivity : Activity() {
         buttons.addView(Button(this).apply {
             text = "儲存"
             setOnClickListener {
-                if (input.text.isNotBlank()) secrets.setBlocking(p.secret, input.text.toString())
+                if (input.text.isNotBlank()) {
+                    secrets.setBlocking(p.secret, input.text.toString())
+                    tw.hoonsor.ime.voice.ai.AiRunner.resetQuota()
+                }
                 config.setBaseUrl(p, base.text.toString().takeIf { it != p.defaultBase })
                 input.setText("")
                 refresh()
@@ -150,11 +153,59 @@ class AiSettingsActivity : Activity() {
             setOnClickListener { testConnection(p, status) }
         })
         box.addView(buttons)
+        box.addView(backupKeyBlock(p))
         return wrap(box)
     }
 
-    private fun testConnection(p: AiProvider, out: TextView) {
-        val key = secrets.getBlocking(p.secret)
+    /** 備用 key（倬：Groq 註冊了兩個帳號）：主要 key 免費額度用完時自動改用。 */
+    private fun backupKeyBlock(p: AiProvider): View {
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dpi(10f), 0, 0) }
+        val status = text("", 13f, alpha = 0.8f)
+        fun refresh() { status.text = secrets.masked(p.backupSecret)?.let { "已設定 $it" } ?: "未設定（選填）" }
+        refresh()
+        val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        head.addView(text("備用 API key", 15f), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        head.addView(status)
+        col.addView(head)
+        col.addView(text("主要 key 的免費額度用完時自動改用（例如第二個帳號的 key）。", 12f, alpha = 0.7f))
+        val input = EditText(this).apply {
+            hint = "貼上備用的 ${p.label} API key"
+            setSingleLine()
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        col.addView(input)
+        val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        buttons.addView(Button(this).apply {
+            text = "儲存"
+            setOnClickListener {
+                if (input.text.isNotBlank()) {
+                    secrets.setBlocking(p.backupSecret, input.text.toString())
+                    tw.hoonsor.ime.voice.ai.AiRunner.resetQuota()
+                    toast("已儲存備用 key")
+                }
+                input.setText("")
+                refresh()
+            }
+        })
+        buttons.addView(Button(this).apply {
+            text = "清除"
+            setOnClickListener {
+                AlertDialog.Builder(this@AiSettingsActivity)
+                    .setMessage("清除 ${p.label} 的備用 API key？")
+                    .setPositiveButton("清除") { _, _ -> secrets.setBlocking(p.backupSecret, null); refresh() }
+                    .setNegativeButton("取消", null).show()
+            }
+        })
+        buttons.addView(Button(this).apply {
+            text = "測試"
+            setOnClickListener { testConnection(p, status, backup = true) }
+        })
+        col.addView(buttons)
+        return col
+    }
+
+    private fun testConnection(p: AiProvider, out: TextView, backup: Boolean = false) {
+        val key = secrets.getBlocking(if (backup) p.backupSecret else p.secret)
         if (key.isNullOrBlank()) { toast("請先儲存 API key"); return }
         out.text = "測試中…"
         val base = config.baseUrl(p)

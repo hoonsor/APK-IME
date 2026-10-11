@@ -10,6 +10,7 @@ import tw.hoonsor.ime.contracts.TextRewriter
 import tw.hoonsor.ime.contracts.VoiceInputController
 import tw.hoonsor.ime.contracts.VoiceState
 import tw.hoonsor.ime.contracts.VoiceTermProvider
+import tw.hoonsor.ime.voice.ai.AiRole
 import tw.hoonsor.ime.voice.ai.AiRunner
 import tw.hoonsor.ime.voice.text.S2tConverter
 import tw.hoonsor.ime.voice.ui.VoicePanelHost
@@ -71,6 +72,25 @@ object VoiceModule {
     /** 面板顯示時呼叫（處理「打開就自動錄音」設定）。 */
     fun onPanelShown(panel: View) {
         (panel as? VoicePanelView)?.onShown()
+    }
+
+    /**
+     * AI 免費額度用完（主要與備用 key、主要與備援模型都失敗）時，在主執行緒收到提醒文字。
+     * 鍵盤用這個跳出提醒視窗。
+     */
+    fun setQuotaListener(listener: ((String) -> Unit)?) {
+        AiRunner.quotaListener = listener?.let { l ->
+            { role: AiRole ->
+                l(when (role) {
+                    AiRole.STT, AiRole.STT_BACKUP ->
+                        "語音轉文字的免費額度已經達到上限（主要與備用 API key 都用完了），暫時無法使用語音輸入。"
+                    AiRole.POLISH, AiRole.POLISH_BACKUP ->
+                        "語音潤飾的免費額度已經達到上限，後續會使用原文輸出（直接送出語音辨識的文字，不潤飾）。"
+                    AiRole.REWRITE, AiRole.REWRITE_BACKUP ->
+                        "文字 AI 的免費額度已經達到上限，後續會使用原文輸出（文字維持原樣，不改寫）。"
+                })
+            }
+        }
     }
 
     /** 在主執行緒收到狀態變化。 */

@@ -73,5 +73,8 @@ enum class VoiceErrorCode {
     EMPTY_AUDIO,
     PASSWORD_FIELD,
     NO_SELECTION,
+
+    /** 免費額度或速率限制用完（HTTP 429／402），主要與備用 key 都一樣。 */
+    QUOTA,
     UNKNOWN,
 }

@@ -32,3 +32,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 Apache License 2.0 — Copyright (c) 2010-2026 Carbo Kuo and contributors.
 全文：http://www.apache.org/licenses/LICENSE-2.0
+
+## 符號表分類參考：新酷音 libchewing-data（LGPL-2.1）
+- https://github.com/chewing/libchewing-data （misc/symbols.dat）
+- 只參考其符號分類方式；本專案的符號清單為自行整理，未直接引入該檔案。

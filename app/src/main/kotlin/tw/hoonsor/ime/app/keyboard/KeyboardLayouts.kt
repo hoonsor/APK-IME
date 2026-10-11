@@ -24,6 +24,13 @@ sealed interface KeyAction {
 
     /** 符號鍵盤圖釘（K4）。 */
     data object Pin : KeyAction
+
+    /** 符號鍵盤翻頁。 */
+    data object PageUp : KeyAction
+    data object PageDown : KeyAction
+
+    /** 不做事的鍵（頁碼、空格補位）。 */
+    data object Nop : KeyAction
 }
 
 data class KeyDef(
@@ -116,8 +123,48 @@ object KeyboardLayouts {
         return rows
     }
 
-    private val HALF = (", . ; : ? ! ' \" ( ) [ ] { } < > - _ + = * / \\ | @ # $ % ^ & ~ `").split(' ')
-    private val FULL = "，。、；：？！…「」『』（）【】《》〈〉—～＋－＊／＝％＠＃＆＿｜＼‧·".map { it.toString() }
+    private fun chars(s: String): List<String> {
+        // 以 code point 切開（避免把代理字元拆壞），去掉空白
+        val out = ArrayList<String>()
+        var i = 0
+        while (i < s.length) {
+            val cp = s.codePointAt(i)
+            val n = Character.charCount(cp)
+            if (!Character.isWhitespace(cp)) out += s.substring(i, i + n)
+            i += n
+        }
+        return out
+    }
+
+    /**
+     * 半形與常用符號（倬：加入箭頭、核取方塊等）。
+     * 第一頁是鍵盤上的 ASCII 標點，之後依類別排列；分類參考新酷音符號表，內容自行整理。
+     */
+    private val HALF: List<String> by lazy {
+        (chars(", . ; : ? ! ' \" ( ) [ ] { } < > - _ + = * / \\ | @ # $ % ^ & ~ `") +
+            chars("← ↑ → ↓ ↖ ↗ ↘ ↙ ↔ ↕ ⇐ ⇑ ⇒ ⇓ ⇔ ⇕ ➜ ➔ ↩ ↪ ⤴ ⤵ ↺ ↻ ⇄ ⇅ ▶ ◀") +
+            chars("☐ ☑ ☒ ✓ ✔ ✗ ✘ ✕ ✖ ⭕ ❌ ❎ • ◦ ‣ ⁃ ○ ● ◎ ◉ □ ■ ◇ ◆ △ ▲ ▽ ▼ ▷ ◁ ☆ ★ ♡ ♥") +
+            chars("± × ÷ ≠ ≈ ≒ ≤ ≥ ≦ ≧ ∞ √ ∑ ∏ ∫ ∆ ∂ ∵ ∴ ∈ ∉ ⊂ ⊃ ∩ ∪ ∀ ∃ ¬ ∧ ∨ ⊕ ° ′ ″ ‰ ½ ⅓ ¼ ¾ ² ³ ¹ ₂ µ π") +
+            chars("¢ £ ¥ € ₩ ฿ ₹ ₿ ℃ ℉ ㎎ ㎏ ㎝ ㎜ ㎞ ㎡ ㏄ ℓ № ℡ © ® ™ § ¶ † ‡ ※ … ‧ ·") +
+            chars("♀ ♂ ♠ ♣ ♦ ♪ ♫ ☀ ☁ ☂ ☃ ☎ ✉ ✈ ✂ ✏ ✒ ⚠ ⚡ ☕ ⌘ ⌥ ⇧ ⏎ ⌫ ⏰ ⌛ ☯ ♻ ⚑ ⚐")).distinct()
+    }
+
+    /** 全形標點與符號：常用標點在前，其後依新酷音的分類（括號、直書括號、希臘字母、數學、圖形、框線、方塊、線段）。 */
+    private val FULL: List<String> by lazy {
+        (chars("，。、；：？！…「」『』（）【】《》〈〉—～＋－＊／＝％＠＃＆＿｜＼‧·") +
+            chars("‥﹐﹒˙‘’“”〝〞‵′〃＄") +
+            chars("〔〕｛｝［］〖〗﹙﹚﹝﹞﹛﹜") +
+            chars("︵︶﹁﹂︹︺︷︸︿﹀﹃﹄︽︾︻︼") +
+            chars("αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ") +
+            chars("×÷≠≒∞±√＜＞≦≧∩∪⊥∠∟⊿㏒㏑∫∮∵∴") +
+            chars("↑↓←→↖↗↙↘㊣◎○●⊕⊙△▲☆★◇◆□■▽▼§￥〒￠￡※♀♂") +
+            chars("♨☀☁☂☃♠♥♣♦♩♪♫♬☺☻") +
+            chars("├─┼┴┬┤┌┐╞═╪╡│▕└┘╭╮╰╯") +
+            chars("╔╦╗╠╬╣╓╥╖╒╤╕║╚╩╝╟╫╢╙╨╜╘╧╛") +
+            chars("▁▂▃▄▅▆▇█▏▎▍▌▋▊▉◢◣◥◤") +
+            chars("﹣﹦≡｜∣∥–︱︳╴¯￣﹉﹊﹍﹎﹋﹌﹏︴∕﹨╱╲")).distinct()
+    }
+
     private val NUM = "1 2 3 4 5 6 7 8 9 0 . , + - * / = % ( ) $ # : ①".split(' ')
     private val KAOMOJI = listOf(
         "(*´∀`)~♥", "(｡◕∀◕｡)", "(´・ω・`)", "(╯°□°)╯︵ ┻━┻", "ヽ(✿ﾟ▽ﾟ)ノ", "(｡ŏ_ŏ)",
@@ -125,25 +172,51 @@ object KeyboardLayouts {
         "( ˘•ω•˘ )", "(ﾟ∀ﾟ)", "(≧∇≦)/", "┐(´д`)┌", "(๑•̀ㅂ•́)و✧", "(〃∀〃)",
     )
 
+    private const val SYM_COLS = 7
+    private const val SYM_ROWS = 4
+
+    private fun symbolItems(item: FanItem): Triple<List<String>, Int, Float> = when (item) {
+        FanItem.HALF -> Triple(HALF, SYM_COLS, 21f)
+        FanItem.FULL -> Triple(FULL, SYM_COLS, 21f)
+        FanItem.NUM -> Triple(NUM, 6, 24f)
+        FanItem.KAOMOJI -> Triple(KAOMOJI, 3, 15f)
+        FanItem.CLIPBOARD -> Triple(emptyList(), 1, 16f)
+    }
+
+    /** 符號共有幾頁。 */
+    fun symbolPages(item: FanItem): Int {
+        val (items, perRow, _) = symbolItems(item)
+        return maxOf(1, (items.size + perRow * SYM_ROWS - 1) / (perRow * SYM_ROWS))
+    }
+
     /**
-     * 符號鍵盤：內容 + 控制列（返回、圖釘、空白、刪除、換行）。
+     * 符號鍵盤：左邊 4 排符號，最右一欄是 ▲ 上一頁／▼ 下一頁／頁碼／圖釘（倬：符號太多要能翻頁）；
+     * 最下排是返回、空白、刪除、換行。
      * backLabel：返回鍵顯示「ㄅㄆㄇ」或「ABC」，依進入符號鍵盤前的鍵盤而定。
      */
-    fun symbols(item: FanItem, pinned: Boolean, backLabel: String = "ㄅㄆㄇ"): List<List<KeyDef>> {
-        val (items, perRow, size) = when (item) {
-            FanItem.HALF -> Triple(HALF, 8, 22f)
-            FanItem.FULL -> Triple(FULL, 8, 22f)
-            FanItem.NUM -> Triple(NUM, 6, 24f)
-            FanItem.KAOMOJI -> Triple(KAOMOJI, 3, 15f)
-            FanItem.CLIPBOARD -> Triple(emptyList(), 1, 16f)
-        }
-        val rows = items.chunked(perRow).take(4).map { row ->
-            row.map { KeyDef(it, KeyAction.Commit(it), textSizeSp = size) }
+    fun symbols(item: FanItem, pinned: Boolean, backLabel: String = "ㄅㄆㄇ", page: Int = 0): List<List<KeyDef>> {
+        val (items, perRow, size) = symbolItems(item)
+        val pages = symbolPages(item)
+        val p = page.coerceIn(0, pages - 1)
+        val slice = items.drop(p * perRow * SYM_ROWS).take(perRow * SYM_ROWS)
+        val side = listOf(
+            KeyDef("▲", KeyAction.PageUp, style = KeyStyle.DARK, textSizeSp = 18f),
+            KeyDef("▼", KeyAction.PageDown, style = KeyStyle.DARK, textSizeSp = 18f),
+            KeyDef("${p + 1}/$pages", KeyAction.Nop, style = KeyStyle.DARK, textSizeSp = 14f),
+            KeyDef(if (pinned) "🔒" else "📌", KeyAction.Pin, style = KeyStyle.DARK, textSizeSp = 17f),
+        )
+        val rows = (0 until SYM_ROWS).map { r ->
+            val cells = (0 until perRow).map { c ->
+                val t = slice.getOrNull(r * perRow + c)
+                if (t == null) KeyDef("", KeyAction.Nop, textSizeSp = size)
+                else KeyDef(t, KeyAction.Commit(t), textSizeSp = size)
+            }
+            // 右欄比一般鍵寬一點；顏文字每排 3 個，右欄權重跟著調整
+            cells + side[r].copy(weight = if (perRow <= 3) 0.6f else 1.1f)
         }.toMutableList()
         rows += listOf(
             KeyDef(backLabel, KeyAction.ToZhuyin, weight = 1.4f, style = KeyStyle.DARK, textSizeSp = 15f),
-            KeyDef(if (pinned) "📌 鎖定" else "📌", KeyAction.Pin, weight = 1.2f, style = KeyStyle.DARK, textSizeSp = 15f),
-            KeyDef("", KeyAction.Space, weight = 2.4f),
+            KeyDef("", KeyAction.Space, weight = 3.6f),
             KeyDef("", KeyAction.Backspace, weight = 1.2f, style = KeyStyle.DARK),
             KeyDef("", KeyAction.Enter, weight = 1.2f, style = KeyStyle.DARK),
         )

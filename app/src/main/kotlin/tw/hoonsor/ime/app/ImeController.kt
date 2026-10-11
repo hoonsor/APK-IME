@@ -115,6 +115,11 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     private lateinit var toolbar: ToolbarView
     private lateinit var candBar: CandidateBarView
     private lateinit var panelArea: FrameLayout
+    private lateinit var quotaAlert: FrameLayout
+    private lateinit var quotaText: android.widget.TextView
+
+    /** 同一則額度提醒 30 分鐘內只跳一次，避免每次語音都被打斷。 */
+    private val quotaShown = HashMap<String, Long>()
     private lateinit var keyboard: KeyboardView
     private lateinit var voiceSlot: FrameLayout
     private lateinit var clipboardSlot: FrameLayout
@@ -155,6 +160,9 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
 
     /** 扇子切到符號／數字鍵盤之前的鍵盤，符號打完或按返回鍵時回到這裡。 */
     private var returnLayout = Layout.ZHUYIN
+
+    /** 符號鍵盤目前的頁碼（換符號種類時回到第一頁）。 */
+    private var symbolPage = 0
     private var wordMatches: List<String> = emptyList()
 
     /** 需求六：長按自建詞後等待確認刪除。 */
@@ -301,6 +309,9 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         panelArea.addView(gearMenu, FrameLayout.LayoutParams(0, c.dpi(136f), Gravity.TOP or Gravity.START))
         panelArea.addView(heightPanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, c.dpi(110f), Gravity.TOP))
         panelArea.addView(fan, match())
+        quotaAlert = buildQuotaAlert(c)
+        panelArea.addView(quotaAlert, match())   // 最上層：語音面板、剪貼簿上也看得到
+        VoiceModule.setQuotaListener(::showQuotaAlert)
         root.addView(panelArea, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, c.dpi(prefs.panelHeightDp.toFloat())))
 
         navSpacer = View(c).apply { setBackgroundColor(Palette.BG) }
@@ -414,6 +425,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     }
 
     fun release() {
+        VoiceModule.setQuotaListener(null)
         voice?.release()
         aiExec.shutdown()
         cm.removePrimaryClipChangedListener(clipListener)
@@ -437,7 +449,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
             Layout.ENGLISH -> KeyboardLayouts.english(shiftState > 0, prefs.numberRow)
             Layout.SYMBOL -> {
                 val back = if (returnLayout == Layout.ENGLISH) "ABC" else "ㄅㄆㄇ"
-                if (symbolSet == FanItem.NUM) KeyboardLayouts.dialer(back) else KeyboardLayouts.symbols(symbolSet, pinned, back)
+                if (symbolSet == FanItem.NUM) KeyboardLayouts.dialer(back) else KeyboardLayouts.symbols(symbolSet, pinned, back, symbolPage)
             }
         })
     }
@@ -627,6 +639,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     // =====================================================================
 
     override fun onKey(key: KeyDef) {
+        if (key.action == KeyAction.Nop) return
         val e = engine
         pendingDelete = null
         aiUndo = null
@@ -688,7 +701,13 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
                 applyLayout()
             }
             KeyAction.Pin -> { pinned = !pinned; applyLayout() }
-            KeyAction.Fan, KeyAction.Punct -> {} // 由手勢回呼處理
+            KeyAction.PageUp, KeyAction.PageDown -> {
+                val pages = KeyboardLayouts.symbolPages(symbolSet)
+                val step = if (a == KeyAction.PageDown) 1 else -1
+                symbolPage = (symbolPage + step + pages) % pages   // 最後一頁再按 ▼ 回到第一頁
+                applyLayout()
+            }
+            KeyAction.Fan, KeyAction.Punct, KeyAction.Nop -> {} // 由手勢回呼處理／不做事
         }
         render()
     }
@@ -753,6 +772,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         }
         commitComposing()
         if (layout != Layout.SYMBOL) returnLayout = layout
+        if (symbolSet != item) symbolPage = 0
         symbolSet = item
         pinned = false
         layout = Layout.SYMBOL
@@ -1107,6 +1127,66 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     }
 
     // =====================================================================
+
+    /** 額度用完提醒視窗（倬：「免費額度已經達到上限，後續會使用原文輸出」）。 */
+    private fun buildQuotaAlert(c: Context): FrameLayout {
+        val scrim = FrameLayout(c).apply {
+            setBackgroundColor(0x99000000.toInt())
+            isClickable = true   // 擋住下面的按鍵
+            visibility = View.GONE
+        }
+        val card = LinearLayout(c).apply {
+            orientation = LinearLayout.VERTICAL
+            val p = c.dpi(16f)
+            setPadding(p, p, p, c.dpi(10f))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(0xFF2A2A2A.toInt()); cornerRadius = c.dpi(14f).toFloat()
+            }
+        }
+        card.addView(android.widget.TextView(c).apply {
+            text = "⚠ AI 免費額度已達上限"
+            setTextColor(Palette.ACCENT)
+            textSize = 18f
+        })
+        quotaText = android.widget.TextView(c).apply {
+            setTextColor(Palette.TEXT_BRIGHT)
+            textSize = 15f
+            setPadding(0, c.dpi(8f), 0, c.dpi(4f))
+        }
+        card.addView(quotaText)
+        card.addView(android.widget.TextView(c).apply {
+            text = "可到 ⚙ → AI 模型設定 新增備用 API key 或換模型。"
+            setTextColor(Palette.TEXT)
+            textSize = 13f
+        })
+        card.addView(android.widget.TextView(c).apply {
+            text = "知道了"
+            setTextColor(Palette.HILITE_TEXT)
+            textSize = 16f
+            gravity = Gravity.CENTER
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(Palette.TEXT); cornerRadius = c.dpi(10f).toFloat()
+            }
+            setOnClickListener { scrim.visibility = View.GONE }
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, c.dpi(44f)).apply { topMargin = c.dpi(12f) })
+        scrim.addView(card, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER).apply {
+            val m = c.dpi(18f); leftMargin = m; rightMargin = m
+        })
+        return scrim
+    }
+
+    private fun showQuotaAlert(msg: String) {
+        val now = System.currentTimeMillis()
+        if (now - (quotaShown[msg] ?: 0L) < 30 * 60_000L) return
+        quotaShown[msg] = now
+        if (!viewReady || !root.isShown) {
+            Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
+            return
+        }
+        quotaText.text = msg
+        quotaAlert.visibility = View.VISIBLE
+        quotaAlert.bringToFront()
+    }
 
     private fun notifyLoading() {
         if (!loadNotified) { toast("詞庫載入中，請稍候…"); loadNotified = true }

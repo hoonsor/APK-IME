@@ -92,7 +92,10 @@ object AiHttp {
             val code = conn.responseCode
             val stream = if (code >= 400) conn.errorStream else conn.inputStream
             val text = stream?.use { it.readBytes().toString(Charsets.UTF_8) } ?: ""
-            if (code >= 400) throw AiException(VoiceErrorCode.PROVIDER_ERROR, httpMessage(code, text))
+            if (code >= 400) {
+                val c = if (code == 429 || code == 402) VoiceErrorCode.QUOTA else VoiceErrorCode.PROVIDER_ERROR
+                throw AiException(c, httpMessage(code, text))
+            }
             return text
         } catch (e: AiException) {
             throw e
@@ -115,7 +118,8 @@ object AiHttp {
             401, 403 -> "API key 無效或沒有權限"
             404 -> "找不到模型（可能已下架或名稱打錯）"
             413 -> "音檔太大"
-            429 -> "請求太頻繁或額度用完"
+            429 -> "請求太頻繁或免費額度用完"
+            402 -> "額度或餘額不足"
             in 500..599 -> "供應商伺服器錯誤"
             else -> "請求失敗"
         }
