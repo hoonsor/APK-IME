@@ -257,20 +257,8 @@ class DictionaryActivity : Activity() {
         return true
     }
 
-    /** 驗證並正規化注音：每個音節以注音符號開頭，聲調只能在最後。 */
-    private fun parseReadings(s: String): List<String>? {
-        val parts = s.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
-        if (parts.isEmpty()) return null
-        for (p in parts) {
-            if (!Zhuyin.isSymbol(p[0])) return null
-            for ((i, c) in p.withIndex()) {
-                if (Zhuyin.isSymbol(c)) continue
-                if (Zhuyin.isTone(c) && i == p.length - 1) continue
-                return null
-            }
-        }
-        return parts.map { Syllable.parse(it).toString() }
-    }
+    /** 驗證並正規化注音（與匯入 CSV 共用同一套規則）。 */
+    private fun parseReadings(s: String): List<String>? = DictionaryCsv.parseReadings(s)
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import tw.hoonsor.ime.app.settings.DictionaryCsv
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -27,6 +28,7 @@ class UserPhraseStore private constructor(context: Context) {
     data class Phrase(val text: String, val readings: List<String>, val source: String, val freq: Int)
 
     private val file = File(context.applicationContext.filesDir, "user_dict.tsv")
+    private val beforeImport = File(context.applicationContext.filesDir, "user_dict.before-import.tsv")
     private val phrases = LinkedHashMap<String, Phrase>()
     private val words = LinkedHashSet<String>()
     private val quick = ArrayList<String>()
@@ -167,6 +169,63 @@ class UserPhraseStore private constructor(context: Context) {
                 Log.w(TAG, "save failed", e)
             }
         }
+    }
+
+    // ---------- 電腦可編輯的 CSV（DictionaryCsv） ----------
+
+    @Synchronized
+    fun csvData(): DictionaryCsv.Data {
+        return DictionaryCsv.Data(
+            phrases = phrases.values.map { DictionaryCsv.Phrase(it.text, it.readings, it.source == "CONTACT") },
+            words = words.toList(),
+            quick = quick.toList(),
+            usage = usage.values.map { DictionaryCsv.Usage(it.first.first, it.first.second, it.second) },
+        )
+    }
+
+
+
+    /** 上次匯入前自動保存的字典是否存在（可「復原上次匯入」）。 */
+    fun hasImportBackup() = beforeImport.exists()
+
+    /**
+     * 套用電腦編輯後的字典。
+     * replace = true：以檔案為準（檔案中沒有的詞會被刪掉）；false：只新增／更新。
+     * 學習紀錄：檔案有就套用，沒有就保留手機上原本的。
+     * 套用前先把目前的字典存一份，可用 [restoreImportBackup] 復原。
+     */
+    fun applyCsv(d: DictionaryCsv.Data, replace: Boolean) {
+        val backup = snapshot()
+        try { beforeImport.writeText(backup) } catch (e: Exception) { Log.w(TAG, "backup failed", e) }
+        synchronized(this) {
+            if (replace) { phrases.clear(); words.clear(); quick.clear() }
+            for (p in d.phrases) {
+                val k = key(p.text, p.readings)
+                phrases[k] = Phrase(p.text, p.readings, if (p.contact) "CONTACT" else "USER", phrases[k]?.freq ?: 0)
+            }
+            words += d.words
+            for (q in d.quick) if (q !in quick) quick += q
+            if (d.usage.isNotEmpty()) {
+                if (replace) usage.clear()
+                for (u in d.usage) usage[key(u.text, u.readings)] = (u.text to u.readings) to u.count
+            }
+        }
+        changed(true)
+        saveNow()
+    }
+
+    /** 復原到上次匯入前的字典。 */
+    fun restoreImportBackup(): Boolean {
+        if (!beforeImport.exists()) return false
+        val text = beforeImport.readText()
+        synchronized(this) {
+            phrases.clear(); words.clear(); quick.clear(); usage.clear()
+            text.lineSequence().forEach { parseLine(it) }
+        }
+        beforeImport.delete()
+        changed(true)
+        saveNow()
+        return true
     }
 
     fun exportTo(out: OutputStream) {

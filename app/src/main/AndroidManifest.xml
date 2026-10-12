@@ -54,5 +54,12 @@
             android:label="AI 模型設定"
             android:theme="@android:style/Theme.Material.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- 字典匯出檔分享（Google Drive、Dropbox…）；不對外公開，只靠分享時的暫時授權 -->
+        <provider
+            android:name=".settings.ExportProvider"
+            android:authorities="${applicationId}.export"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 </manifest>

@@ -82,21 +82,35 @@ class SettingsActivity : Activity() {
         button("檢視／編輯 注音自建詞") { openDict(DictionaryActivity.MODE_PHRASES) }
         button("檢視／編輯 英文詞（字母＋符號）") { openDict(DictionaryActivity.MODE_WORDS) }
         button("常用短語") { openDict(DictionaryActivity.MODE_QUICK) }
-        button("備份字典到檔案…") {
-            startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type = "text/tab-separated-values"
-                putExtra(Intent.EXTRA_TITLE, "user_dict_backup.tsv")
-            }, REQ_EXPORT)
-        }
-        button("從檔案還原字典…") {
+        col.addView(TextView(this).apply {
+            text = "匯出／匯入（中文詞、英文詞、常用短語、學習紀錄）"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setPadding(0, dpi(10f), 0, dpi(2f))
+        })
+        button("匯出字典並分享（Google Drive、Dropbox、Email…）") { exportDictionary(share = true) }
+        button("匯出字典存到手機檔案…") { exportDictionary(share = false) }
+        button("匯入字典（從檔案、Google Drive、Dropbox）…") {
             startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "*/*"
+                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/csv", "text/comma-separated-values", "text/plain",
+                    "text/tab-separated-values", "application/vnd.ms-excel", "application/octet-stream"))
             }, REQ_IMPORT)
         }
+        button("復原上次匯入前的字典") {
+            val store = UserPhraseStore.get(this)
+            if (!store.hasImportBackup()) { toast("沒有可復原的匯入紀錄"); return@button }
+            android.app.AlertDialog.Builder(this)
+                .setMessage("把字典恢復成上次匯入之前的內容？")
+                .setPositiveButton("復原") { _, _ -> store.load(); toast(if (store.restoreImportBackup()) "已復原" else "復原失敗") }
+                .setNegativeButton("取消", null).show()
+        }
         col.addView(TextView(this).apply {
-            text = "在這裡修改字典後，把鍵盤收起再打開一次就會生效。"
+            text = "匯出的是 CSV 檔，可用 Excel 或 Google 試算表編輯，欄位：類型、內容、注音、使用次數。\n" +
+                "・類型填「中文詞」「英文詞」「常用短語」；中文詞的注音可留空，匯入時自動判斷。\n" +
+                "・Excel 存檔請選「CSV UTF-8（逗號分隔）」；一般 CSV 也能匯入。\n" +
+                "・匯入時可選「合併」（只新增）或「取代」（以檔案為準，檔案裡刪掉的詞手機也刪掉）；匯入前會自動保留一份，可復原。\n" +
+                "・在這裡修改字典後，把鍵盤收起再打開一次就會生效。"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
         })
 
@@ -143,22 +157,150 @@ class SettingsActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         val uri = data?.data ?: return
         if (resultCode != RESULT_OK) return
-        try {
-            val store = UserPhraseStore.get(this)
-            store.load()
-            when (requestCode) {
-                REQ_EXPORT -> {
-                    contentResolver.openOutputStream(uri)?.use { store.exportTo(it) }
-                    toast("已備份")
-                }
-                REQ_IMPORT -> {
-                    val n = contentResolver.openInputStream(uri)?.use { store.importFrom(it) } ?: 0
-                    toast("已還原 $n 筆")
-                }
+        when (requestCode) {
+            REQ_EXPORT -> io.execute {
+                val msg = try {
+                    val bytes = dictionaryBytes()
+                    contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                    "已匯出"
+                } catch (e: Exception) { "匯出失敗：${e.message}" }
+                main.post { toast(msg) }
             }
-        } catch (e: Exception) {
-            toast("失敗：${e.message}")
+            REQ_IMPORT -> readImport(uri)
         }
+    }
+
+    // =====================================================================
+    // 字典匯出／匯入（DictionaryCsv）
+    // =====================================================================
+
+    private val io = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val main = android.os.Handler(android.os.Looper.getMainLooper())
+
+    private fun dictionaryBytes(): ByteArray {
+        val store = UserPhraseStore.get(this)
+        store.load()
+        return DictionaryCsv.export(store.csvData())
+    }
+
+    private fun exportName(): String =
+        "倬注音字典_" + java.text.SimpleDateFormat("yyyyMMdd_HHmm", java.util.Locale.TAIWAN).format(java.util.Date()) + ".csv"
+
+    private fun exportDictionary(share: Boolean) {
+        if (!share) {
+            startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "text/csv"
+                putExtra(Intent.EXTRA_TITLE, exportName())
+            }, REQ_EXPORT)
+            return
+        }
+        io.execute {
+            try {
+                val name = exportName()
+                val uri = ExportProvider.write(this, name, dictionaryBytes())
+                main.post {
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/csv"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        putExtra(Intent.EXTRA_SUBJECT, name)
+                        putExtra(Intent.EXTRA_TITLE, name)
+                        clipData = android.content.ClipData.newRawUri(name, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    startActivity(Intent.createChooser(send, "分享字典到…"))
+                }
+            } catch (e: Exception) {
+                main.post { toast("匯出失敗：${e.message}") }
+            }
+        }
+    }
+
+    /** 讀檔、解析、補注音（背景執行），再讓使用者選合併或取代。 */
+    private fun readImport(uri: android.net.Uri) {
+        toast("讀取中…")
+        io.execute {
+            try {
+                val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: throw IllegalStateException("無法讀取檔案")
+                val text = DictionaryCsv.decode(bytes)
+                if (DictionaryCsv.isLegacyBackup(text)) {
+                    // 舊版備份檔（.tsv）：照舊合併
+                    val store = UserPhraseStore.get(this)
+                    store.load()
+                    val n = store.importFrom(text.byteInputStream())
+                    main.post { toast("已從舊版備份還原 $n 筆") }
+                    return@execute
+                }
+                val parsed = DictionaryCsv.parse(text)
+                val errors = parsed.errors.toMutableList()
+                val extra = ArrayList<DictionaryCsv.Phrase>()
+                if (parsed.pending.isNotEmpty()) {
+                    val lex = tw.hoonsor.ime.app.LexiconHolder.get(this)
+                    for (p in parsed.pending) {
+                        val r = lex.readingsFor(p.text)
+                        if (r == null) errors += "第 ${p.line} 行：找不到「${p.text}」的注音，請手動填寫"
+                        else extra += DictionaryCsv.Phrase(p.text, r, p.contact)
+                    }
+                }
+                val d = parsed.data.copy(phrases = parsed.data.phrases + extra)
+                main.post { confirmImport(d, errors) }
+            } catch (e: Exception) {
+                main.post { toast("匯入失敗：${e.message}") }
+            }
+        }
+    }
+
+    private fun confirmImport(d: DictionaryCsv.Data, errors: List<String>) {
+        val total = d.phrases.size + d.words.size + d.quick.size
+        if (total == 0 && d.usage.isEmpty()) {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("沒有可匯入的內容")
+                .setMessage(errors.take(15).joinToString("\n").ifEmpty { "檔案是空的，或格式不是倬注音匯出的字典。" })
+                .setPositiveButton("確定", null).show()
+            return
+        }
+        val msg = buildString {
+            append("中文詞 ${d.phrases.size} 筆、英文詞 ${d.words.size} 筆、常用短語 ${d.quick.size} 筆")
+            if (d.usage.isNotEmpty()) append("、學習紀錄 ${d.usage.size} 筆")
+            append("。\n\n")
+            append("合併：只新增或更新，手機上原有的詞都保留。\n")
+            append("取代：以檔案為準，檔案裡沒有的詞會從手機刪除。\n")
+            append("匯入前會自動保留目前的字典，可用「復原上次匯入前的字典」復原。")
+            if (errors.isNotEmpty()) {
+                append("\n\n⚠ 有 ${errors.size} 行無法匯入（會略過）：\n")
+                append(errors.take(10).joinToString("\n"))
+                if (errors.size > 10) append("\n…")
+            }
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("匯入字典")
+            .setMessage(msg)
+            .setPositiveButton("合併") { _, _ -> applyImport(d, replace = false) }
+            .setNeutralButton("取代") { _, _ ->
+                android.app.AlertDialog.Builder(this)
+                    .setMessage("確定以檔案取代整個字典？檔案裡沒有的詞會被刪除。")
+                    .setPositiveButton("取代") { _, _ -> applyImport(d, replace = true) }
+                    .setNegativeButton("取消", null).show()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun applyImport(d: DictionaryCsv.Data, replace: Boolean) {
+        io.execute {
+            val msg = try {
+                val store = UserPhraseStore.get(this)
+                store.load()
+                store.applyCsv(d, replace)
+                (if (replace) "已取代字典" else "已合併") + "，鍵盤下次開啟時生效"
+            } catch (e: Exception) { "匯入失敗：${e.message}" }
+            main.post { toast(msg) }
+        }
+    }
+
+    override fun onDestroy() {
+        io.shutdown()
+        super.onDestroy()
     }
 
     private fun openDict(mode: String) =
