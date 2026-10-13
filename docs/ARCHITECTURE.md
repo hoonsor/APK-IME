@@ -1,3 +1,5 @@
+> **部分過時（2026-10-13）**：技術選型（Compose、Room、DataStore、OkHttp）與「對話 A／B 合併點」已不符現況，現行架構以 `AGENTS.md` 為準；§5.1 畫面結構與 §6 非功能需求仍有效。
+
 # 架構（ARCHITECTURE）
 
 個人自用 Android 輸入法：超注音式簡拼注音 + Typeless 等級 AI 語音輸入。

@@ -1,3 +1,5 @@
+> **已併入 AGENTS.md**（2026-10-13）。以下為歷史紀錄，現行規則以 `AGENTS.md` 為準。
+
 > **2026-10-10 更新**：語音模組已由對話 A 依 `docs/MOBILE_VOICE_HANDOFF.md` 實作完成（見 `docs/STATUS_ZHUYIN.md`、REQUESTS R1／R3）。以下為原始交接內容，僅供參考。
 
 # 對話 B 交接：語音模組（Typeless 等級）

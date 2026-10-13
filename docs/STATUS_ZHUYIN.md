@@ -1,5 +1,11 @@
 # 注音鍵盤進度（對話 A）
 
+> 2026-10-13 起：版本、下一步、交接紀錄以 `PROJECT_STATUS.md` 為準；本檔保留每日開發細節。
+
+## 2026-10-13（補齊交接文件）
+- 新增 `AGENTS.md`（唯一規則來源）、`docs/DESIGN.md`、`docs/AGENT_API.md`、`docs/agent-manifest.json`（22 個動作，全部規劃中）；README 改為完整使用說明；FEATURES 補 N1～N18 與語音動作對照。
+- `CLAUDE.md` 改為 `@AGENTS.md`；CONVENTIONS、兩份 HANDOFF、REQUESTS 標「已併入 AGENTS.md」保留；ARCHITECTURE 標部分過時。
+
 ## 2026-10-12（符號第一頁、字典匯出匯入）
 - 半形符號第一頁：! @ # $ % ^ & / * ( ) - _ = + / , . ? : ; ' " / / \ | ~ ` [ ]；{ } < > 與箭頭等移到第二頁起。
 - 字典匯出：`DictionaryCsv` 產生 CSV（UTF-8 BOM、CRLF；欄位 類型／內容／注音／使用次數），Excel 會吃掉開頭 0 的內容寫成 ="…"。

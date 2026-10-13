@@ -104,7 +104,43 @@
 | A6 | 安全 | 密碼欄位、剪貼簿搜尋模式下停用；改寫中可取消；失敗時原文不變並提示 | P1 |
 | A7 | 繁體保證 | 提示詞要求繁體台灣用語；程式端再做一次簡轉繁檢查 | P1 |
 
+## 6.1 實機回饋後新增（2026-10-10～10-12，皆已實作，倬實機確認中）
+
+| # | 功能 | 說明 | 優先 | 語音動作 |
+|---|------|------|------|----------|
+| N1 | 大寫鎖定 | 點一下 = 下一字大寫；快速點兩下 = 鎖定（鍵下黃線）；再點解除 | P0 | — |
+| N2 | 扇子依方向選取 | 手指離圓心很近也能選 | P0 | — |
+| N3 | 撥號式數字鍵盤 | 連續輸入不跳回；返回鍵依來源顯示 ABC／ㄅㄆㄇ | P0 | — |
+| N4 | 長按刪除確認 | 長按自建詞 0.8 秒，候選列出現「刪除「詞」／取消」 | P0 | `dictionary_phrase_delete` |
+| N5 | 納入字典 | 編輯面板有選取時：中文自動反查注音、英文加入英文詞 | P1 | `dictionary_phrase_add`、`dictionary_word_add` |
+| N6 | 字典檢視／編輯 | 設定頁：注音自建詞、英文詞、常用短語，可搜尋、新增、編輯、刪除 | P1 | `dictionary_*_list` |
+| N7 | 英文詞加入字典 | 英文／半形符號連續輸入時候選列顯示「abc@gmail.com ＋」；之後打前幾個字母會出現 | P1 | `dictionary_word_add` |
+| N8 | 工具列圖示放大 | 約放大 30%，按鈕數不變 | P1 | — |
+| N9 | 候選字放大 | 28sp，英文類 19sp，每排詞數大致不變 | P1 | — |
+| N10 | 候選列上下滑回工具列 | 收起聯想詞／英文詞／提示（左右滑仍是捲動） | P1 | — |
+| N11 | 提示顯示在候選列 | 3 秒自動消失（ColorOS 不顯示輸入法 Toast） | P0 | — |
+| N12 | 成對符號 | 輸入前符號自動補後符號、游標置中；半形 < > " ' 不配對 | P1 | — |
+| N13 | 剪貼簿 | 自動記錄文字（敏感內容不記錄、只存本機）、釘選、搜尋、一點即貼、2 分鐘內候選列一點即貼 | P1 | `clipboard_list`、`clipboard_pin`、`clipboard_clear` |
+| N14 | 符號表擴充與翻頁 | 半形約 8 頁、全形約 10 頁；右欄 ▲ ▼ 頁碼 📌；半形第一頁依鍵盤數字列順序 | P1 | — |
+| N15 | AI 模型設定 | 供應商（Groq／MiniMax／OpenAI）× 用途（語音轉文字、語音潤飾、文字 AI，各有備援）；備用 API key；測試按鈕 | P0 | `ai_model_get`、`ai_model_set`、`ai_model_test`、`voice_settings_set` |
+| N16 | 額度用完提醒 | 主要與備用 key、主要與備援模型都用完 → 鍵盤內提醒視窗，之後輸出原文；同一則 30 分鐘內只跳一次 | P1 | `app_health`（規劃中） |
+| N17 | 字典匯出／分享／匯入 | CSV 可在電腦編輯；分享到 Google Drive／Dropbox；匯入合併或取代；可復原上次匯入 | P0 | `backup_export`、`backup_import`、`backup_restore_previous` |
+| N18 | 繁簡輸出切換 | 工具列「繁／簡」（OpenCC） | P2 | `output_script_set` |
+
+## 6.2 語音動作對照（給 AI 大腦，皆為規劃中）
+
+完整定義見 `docs/AGENT_API.md`、`docs/agent-manifest.json`。對照：
+Z5／D1 → `dictionary_phrase_list`、`dictionary_phrase_add`；Z6 → `dictionary_phrase_delete`；D2 → `quick_phrase_*`；
+D4／D5 → `backup_*`；K13／K15 → `keyboard_settings_set`；V1／V2／V5 → `voice_settings_set`；V10／A5 → `ai_model_*`；Z11 → `output_script_set`。
+不開放成語音動作：替其他 App 打字、讀輸入框內容、讀 API key（安全與隱私）。
+
 ## 7. 不做的項目
 
 - 廣告、Windows / macOS 版下載連結、內購。
 - 上架 Play Store（個人側載使用）。
+- 用多個 Groq（或其他供應商）帳號繞過免費額度：違反 Groq Acceptable Use Policy（2026-10-11 查證）。
+- Dropbox／Google Drive SDK、OAuth 背景同步：改用 Android 分享與檔案選擇器（流程標準，維持無依賴）。
+- 扇子兩圈：倬「目前不需要兩圈，只要一圈就好」（2026-10-09）。
+- 扇子「顏」（顏文字）：倬實機回饋要求移除（2026-10-10，原因待倬確認）；程式保留 FanItem.KAOMOJI 未顯示。
+- 鍵盤用 Compose：IME 延遲與生命週期風險（見 AGENTS.md §5）。
+- 語音潤飾用 MiniMax-M3：倬實測太慢（2026-10-11），改用 Groq 文字模型。

@@ -1,0 +1,670 @@
+{
+  "api": 1,
+  "app": "倬注音",
+  "package": "tw.hoonsor.ime",
+  "version": "0.6.1",
+  "status": "planned",
+  "description": "超注音式簡拼注音輸入法＋AI 語音輸入與改寫。Agent API 尚未實作，以下動作全部為規劃。鍵盤送字（替其他 App 打字）不開放。",
+  "actions": [
+    {
+      "name": "dictionary_phrase_list",
+      "title": "查詢中文自建詞",
+      "description": "列出注音自建詞，可用關鍵字篩選。",
+      "risk": "read",
+      "params": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "關鍵字（詞或注音），空白則全部"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "我的字典裡有哪些自建詞",
+        "查一下字典有沒有「拉斐爾」"
+      ],
+      "status": "planned",
+      "features": [
+        "Z5",
+        "D1"
+      ]
+    },
+    {
+      "name": "dictionary_phrase_add",
+      "title": "新增中文自建詞",
+      "description": "新增一個中文詞；注音省略時用系統詞庫自動判斷。",
+      "risk": "reversible",
+      "params": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "reading": {
+            "type": "string",
+            "description": "注音，每字一個音節、空白分隔，例如「ㄒㄧㄠˇ ㄗ ㄋㄢˊ」；可省略"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "examples": [
+        "把「倬注音」加到字典",
+        "新增詞「拉斐爾」"
+      ],
+      "status": "planned",
+      "features": [
+        "Z5",
+        "D1"
+      ]
+    },
+    {
+      "name": "dictionary_phrase_delete",
+      "title": "刪除中文自建詞",
+      "description": "刪除一個中文自建詞（內建詞不能刪）。",
+      "risk": "destructive",
+      "params": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reading": {
+            "type": "string",
+            "description": "同一個詞有多個讀音時指定"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "examples": [
+        "從字典刪掉「小資男」"
+      ],
+      "status": "planned",
+      "features": [
+        "Z6"
+      ]
+    },
+    {
+      "name": "dictionary_word_list",
+      "title": "查詢英文詞",
+      "description": "列出英文／數字／符號詞（例如 Email、帳號）。",
+      "risk": "read",
+      "params": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "我存了哪些英文詞"
+      ],
+      "status": "planned",
+      "features": [
+        "N7"
+      ]
+    },
+    {
+      "name": "dictionary_word_add",
+      "title": "新增英文詞",
+      "description": "新增英文／數字／符號詞，打前幾個字母時會出現在候選列。",
+      "risk": "reversible",
+      "params": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^\\S+$"
+          }
+        },
+        "required": [
+          "word"
+        ],
+        "additionalProperties": false
+      },
+      "examples": [
+        "把 abc@gmail.com 加到字典"
+      ],
+      "status": "planned",
+      "features": [
+        "N7"
+      ]
+    },
+    {
+      "name": "dictionary_word_delete",
+      "title": "刪除英文詞",
+      "description": "刪除一個英文詞。",
+      "risk": "destructive",
+      "params": {
+        "type": "object",
+        "properties": {
+          "word": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "word"
+        ],
+        "additionalProperties": false
+      },
+      "examples": [
+        "刪掉英文詞 test123"
+      ],
+      "status": "planned",
+      "features": [
+        "N7"
+      ]
+    },
+    {
+      "name": "quick_phrase_list",
+      "title": "查詢常用短語",
+      "description": "列出常用短語。",
+      "risk": "read",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "我的常用短語有哪些"
+      ],
+      "status": "planned",
+      "features": [
+        "D2"
+      ]
+    },
+    {
+      "name": "quick_phrase_add",
+      "title": "新增常用短語",
+      "description": "新增一則常用短語（可多行）。",
+      "risk": "reversible",
+      "params": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "examples": [
+        "新增常用短語：會議改到下午三點"
+      ],
+      "status": "planned",
+      "features": [
+        "D2"
+      ]
+    },
+    {
+      "name": "quick_phrase_delete",
+      "title": "刪除常用短語",
+      "description": "依內容或序號刪除一則常用短語。",
+      "risk": "destructive",
+      "params": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "刪掉第二個常用短語"
+      ],
+      "status": "planned",
+      "features": [
+        "D2"
+      ]
+    },
+    {
+      "name": "clipboard_list",
+      "title": "查詢剪貼簿紀錄",
+      "description": "列出剪貼簿歷史（本機），可搜尋；內容可能含個資，回傳時截短。",
+      "risk": "read",
+      "params": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "剪貼簿最近複製了什麼",
+        "找剪貼簿裡有「地址」的那筆"
+      ],
+      "status": "planned",
+      "features": [
+        "N13"
+      ]
+    },
+    {
+      "name": "clipboard_pin",
+      "title": "釘選剪貼簿項目",
+      "description": "釘選或取消釘選一筆剪貼簿紀錄（釘選的不會被清除）。",
+      "risk": "reversible",
+      "params": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pinned": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "examples": [
+        "把剛剛複製的那筆釘選起來"
+      ],
+      "status": "planned",
+      "features": [
+        "N13"
+      ]
+    },
+    {
+      "name": "clipboard_clear",
+      "title": "清除剪貼簿紀錄",
+      "description": "清除剪貼簿歷史；預設保留釘選項目。",
+      "risk": "destructive",
+      "params": {
+        "type": "object",
+        "properties": {
+          "includePinned": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "清除剪貼簿紀錄"
+      ],
+      "status": "planned",
+      "features": [
+        "N13"
+      ]
+    },
+    {
+      "name": "ai_model_get",
+      "title": "查詢 AI 模型設定",
+      "description": "列出各用途（語音轉文字、語音潤飾、文字 AI 及備援）目前的供應商與模型；不回傳 API key。",
+      "risk": "read",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "語音潤飾現在用哪個模型"
+      ],
+      "status": "planned",
+      "features": [
+        "V10",
+        "A5"
+      ]
+    },
+    {
+      "name": "ai_model_set",
+      "title": "設定 AI 模型",
+      "description": "設定某個用途的供應商與模型。",
+      "risk": "reversible",
+      "params": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "STT",
+              "STT_BACKUP",
+              "POLISH",
+              "POLISH_BACKUP",
+              "REWRITE",
+              "REWRITE_BACKUP"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "GROQ",
+              "MINIMAX",
+              "OPENAI",
+              "NONE"
+            ],
+            "description": "NONE 只限備援用途"
+          },
+          "model": {
+            "type": "string",
+            "description": "模型 ID，例如 openai/gpt-oss-120b"
+          }
+        },
+        "required": [
+          "role",
+          "provider"
+        ],
+        "additionalProperties": false
+      },
+      "examples": [
+        "語音潤飾改用 Groq 的 gpt-oss-120b",
+        "文字 AI 改用 MiniMax"
+      ],
+      "status": "planned",
+      "features": [
+        "V10",
+        "A5"
+      ]
+    },
+    {
+      "name": "ai_model_test",
+      "title": "測試 AI 模型",
+      "description": "對某個用途的模型發一次測試請求，回傳是否可用與延遲。",
+      "risk": "read",
+      "params": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "STT",
+              "STT_BACKUP",
+              "POLISH",
+              "POLISH_BACKUP",
+              "REWRITE",
+              "REWRITE_BACKUP"
+            ]
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "examples": [
+        "測試一下語音潤飾的模型能不能用"
+      ],
+      "status": "planned",
+      "features": [
+        "V10"
+      ]
+    },
+    {
+      "name": "voice_settings_set",
+      "title": "設定語音輸入選項",
+      "description": "設定是否潤飾、說話語言、翻譯目標語言、按住說話、開面板自動錄音。",
+      "risk": "reversible",
+      "params": {
+        "type": "object",
+        "properties": {
+          "polishEnabled": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "zh",
+              "en",
+              "auto"
+            ]
+          },
+          "translateTo": {
+            "type": "string"
+          },
+          "holdToTalk": {
+            "type": "boolean"
+          },
+          "autoStart": {
+            "type": "boolean"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "語音輸入改成按住說話",
+        "翻譯目標改成日文",
+        "關掉語音潤飾"
+      ],
+      "status": "planned",
+      "features": [
+        "V1",
+        "V2",
+        "V5"
+      ]
+    },
+    {
+      "name": "output_script_set",
+      "title": "切換繁簡輸出",
+      "description": "設定輸入法輸出繁體或簡體中文。",
+      "risk": "reversible",
+      "params": {
+        "type": "object",
+        "properties": {
+          "script": {
+            "type": "string",
+            "enum": [
+              "traditional",
+              "simplified"
+            ]
+          }
+        },
+        "required": [
+          "script"
+        ],
+        "additionalProperties": false
+      },
+      "examples": [
+        "切換成簡體輸出"
+      ],
+      "status": "planned",
+      "features": [
+        "Z11"
+      ]
+    },
+    {
+      "name": "keyboard_settings_set",
+      "title": "設定鍵盤選項",
+      "description": "設定鍵盤高度與偏好開關。",
+      "risk": "reversible",
+      "params": {
+        "type": "object",
+        "properties": {
+          "heightDp": {
+            "type": "integer",
+            "minimum": 180,
+            "maximum": 400
+          },
+          "haptics": {
+            "type": "boolean"
+          },
+          "numberRow": {
+            "type": "boolean"
+          },
+          "associations": {
+            "type": "boolean"
+          },
+          "toolbarClipboard": {
+            "type": "boolean"
+          },
+          "fanClipboard": {
+            "type": "boolean"
+          },
+          "clipCapture": {
+            "type": "boolean"
+          },
+          "clipChip": {
+            "type": "boolean"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "鍵盤高度調到 250",
+        "關掉按鍵振動",
+        "不要記錄剪貼簿"
+      ],
+      "status": "planned",
+      "features": [
+        "K13",
+        "K15",
+        "N13"
+      ]
+    },
+    {
+      "name": "backup_export",
+      "title": "匯出字典備份",
+      "description": "匯出字典 CSV（中文詞、英文詞、常用短語、學習紀錄）；回傳 content:// 網址供分享或存檔。",
+      "risk": "read",
+      "params": {
+        "type": "object",
+        "properties": {
+          "share": {
+            "type": "boolean",
+            "default": false,
+            "description": "true 時開啟分享選單（需要畫面，會回 NEEDS_UI）"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "備份我的字典",
+        "把字典分享到 Google Drive"
+      ],
+      "status": "planned",
+      "features": [
+        "D4",
+        "D5"
+      ]
+    },
+    {
+      "name": "backup_import",
+      "title": "匯入字典",
+      "description": "從 CSV 匯入字典，合併或取代；匯入前自動保存一份可復原。",
+      "risk": "destructive",
+      "params": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "content:// 檔案網址"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "merge",
+              "replace"
+            ],
+            "default": "merge"
+          }
+        },
+        "required": [
+          "uri"
+        ],
+        "additionalProperties": false
+      },
+      "examples": [
+        "從剛剛那個檔案匯入字典（合併）"
+      ],
+      "status": "planned",
+      "features": [
+        "D4"
+      ]
+    },
+    {
+      "name": "backup_restore_previous",
+      "title": "復原匯入前的字典",
+      "description": "把字典恢復成上次匯入之前的內容。",
+      "risk": "destructive",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "復原上次匯入"
+      ],
+      "status": "planned",
+      "features": [
+        "D4"
+      ]
+    },
+    {
+      "name": "app_health",
+      "title": "健康檢查",
+      "description": "回傳輸入法是否已啟用／選用、麥克風權限、各用途是否設定 API key（只回 true/false）、詞庫是否載入。",
+      "risk": "read",
+      "params": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "examples": [
+        "倬注音設定都正常嗎"
+      ],
+      "status": "planned",
+      "features": [
+        "N16"
+      ]
+    }
+  ]
+}
