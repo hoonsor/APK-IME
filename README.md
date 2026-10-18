@@ -1,7 +1,7 @@
 # 倬注音（APK-IME）
 
 > 個人自用的 Android 輸入法：超注音式的簡拼注音鍵盤，加上 Typeless 等級的 AI 語音輸入與 AI 改寫，兩者共用同一份個人詞庫。
-> 目前版本：**v0.6.1**（開發中，個人實機測試階段）｜給 AI 接手的說明在 `AGENTS.md`。
+> 目前版本：**v0.7.0**（開發中，個人實機測試階段）｜給 AI 接手的說明在 `AGENTS.md`。
 
 ## 📖 專案簡介 (Overview)
 
@@ -20,7 +20,7 @@
 1. 電腦裝 Android Studio，專案放在**英文路徑**（例如 D 槽的 dev 資料夾底下，資料夾名稱用英文）。
 2. 第一次開啟：Settings → Build, Execution, Deployment → Build Tools → Gradle → **Gradle JDK 選 jbr-21**（Gradle 8.9 不支援 Java 25）。
 3. 手機開啟「開發人員選項 → USB 偵錯」，接上電腦，按 ▶ **Run**。
-4. 之後更新：覆蓋安裝即可，字典與設定都會保留。**不要先解除安裝**（會清掉字典與 API key）；真的要解除安裝，先「匯出字典」。
+4. 之後更新：改用「7. 手機端更新」的 App 內更新或 Obtainium，不用再接線。覆蓋安裝會保留字典與設定；**不要先解除安裝**（會清掉字典與 API key），真的要解除安裝，先「匯出字典」。
 
 ## 2. 首次設定（ColorOS）
 
@@ -120,6 +120,45 @@
 | Android Studio Sync 失敗「Java 25」 | Gradle JDK 選 jbr-21 |
 | Android Studio 拉取失敗「has no tracked branch」 | 本機資料夾沒接 GitHub；請 AI 直接把檔案寫進資料夾，或重新 clone 一份到英文路徑的新資料夾（例如 `APK-IME`） |
 | 解除安裝後字典不見 | 解除安裝會清掉資料；之後更新一律覆蓋安裝，並定期匯出字典 |
+| 更新時顯示「簽章與目前安裝的不同」 | 手機上是電腦直接安裝的 debug 版，見下方「第一次切換到正式簽章版」 |
+
+## 7. 手機端更新（不用接線）
+
+正式版由 GitHub Actions 編譯、用共用金鑰 `hoonsor-release.jks` 簽章，發布在 [Releases](https://github.com/hoonsor/APK-IME/releases)。手機有兩種更新方式，擇一或並用：
+
+**App 內更新（建議）**
+- 每天第一次打開倬注音的設定頁時，在背景檢查一次；有新版會跳出版本號與更新說明，可選「下載並更新」「稍後」或「略過此版」。
+- 設定頁最下方「6. App 更新」可隨時按「檢查更新」。
+- 第一次更新時會引導你到「安裝不明應用程式」允許倬注音，按返回鍵回到設定頁後自動開始下載。
+- 鍵盤本身不會連網檢查更新，打字完全不受影響；沒網路時安靜略過。
+- 更新完成後字典、設定、API key 都保留，下次叫出鍵盤就是新版（若鍵盤暫時沒出現，切換一次輸入法即可）。
+
+**Obtainium 設定**
+1. 在手機安裝 [Obtainium](https://github.com/ImranR98/Obtainium/releases)。
+2. 「Add App」→ App Source URL 填 `https://github.com/hoonsor/APK-IME`。
+3. 保持「Include prereleases」關閉（`latest` 是每次推送 main 自動編譯的測試版，不要追它）。
+4. 若同一個 Release 未來有多個 APK，在「Filter APKs by Regular Expression」填 `HoonsorIME-v.*\.apk`。
+5. 新增後 Obtainium 會定期檢查，有新版時通知並一鍵安裝。
+
+**第一次切換到正式簽章版（只需一次）**：手機上現在是 Android Studio 直接安裝的 debug 版，簽章不同，系統不允許覆蓋安裝。請先在設定頁「4. 使用者字典」**匯出字典並分享**到雲端 → 記下各 API key（解除安裝會清掉，也不會被匯出）→ 解除安裝 → 從 Releases 安裝正式版 → 重新啟用輸入法、匯入字典（選「取代」）、重新貼上 API key。之後就都能直接更新。
+
+## 8. 如何發新版
+
+1. 修改 `app/build.gradle.kts` 的 `versionCode`（加 1）與 `versionName`（例如 `0.7.1`）。
+2. 在 `PROJECT_STATUS.md` 的「版本歷程」表格最上面新增一列 `| v0.7.1 | 日期 | Commit | 變更內容 | 為什麼 |`；「變更內容」與「為什麼」會自動成為 Release 的更新說明（也就是 App 內更新對話框顯示的內容）。
+3. 提交並推送 main，接著推送同名 tag：
+
+   ```bash
+   git tag v0.7.1
+   git push origin main v0.7.1
+   ```
+
+4. GitHub Actions 會跑單元測試（注音引擎、語音文字規則、更新邏輯）、編譯 `HoonsorIME-v0.7.1.apk` 並建立正式 Release。tag 與 `versionName` 不一致時 CI 會直接失敗，避免 App 一直以為有新版。
+
+其他說明：
+- 每次推送 main 都會更新名為 `latest` 的預先發行版（`HoonsorIME-latest.apk`），給想搶先測試時手動下載；App 內更新與 Obtainium 預設都不會把它當成新版。
+- 簽章 Secrets（`SIGNING_KEYSTORE_B64`、`SIGNING_STORE_PASSWORD`、`SIGNING_KEY_ALIAS`、`SIGNING_KEY_PASSWORD`）已由倬寫入 repo。沒有 Secrets 時 CI 會用 debug 簽章並顯示警告，這種 APK 無法覆蓋安裝，不要拿來發正式版。
+- 本機 `./gradlew :app:assembleRelease` 沒有設定 `SIGNING_KEYSTORE_PATH` 時會用 debug 簽章，只能自己測試。
 
 ---
 
@@ -162,6 +201,7 @@ docs/                # 功能清單、設計、語音 API、歷史文件
 ```
 
 ## 🔄 最新更新 (Recent Updates)
+- **2026-10-18**：免接線更新：GitHub Actions 自動編譯並用共用簽章發布 Release，設定頁新增「App 更新」（App 內檢查、下載、安裝）；語音幻聽過濾加強。
 - **2026-10-13**：補齊交接文件與使用說明（AGENTS.md、本使用說明、設計規則、語音動作規劃）。
 - **2026-10-12**：字典匯出（CSV，電腦可編輯）、分享到 Google Drive／Dropbox、匯入（合併／取代、可復原）；半形符號第一頁依鍵盤數字列順序重排。
 - **2026-10-11**：符號表擴充（箭頭、核取方塊、新酷音分類）並可翻頁；AI 備用 API key 與額度用完提醒；編輯面板選取判斷修正、AI 全文改寫、候選列上下滑回工具列、成對符號自動補齊、語音面板版面調整、候選字放大。

@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- App 內更新：用 PackageInstaller 安裝從 GitHub Releases 下載的新版 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:allowBackup="false"
@@ -61,5 +63,10 @@
             android:authorities="${applicationId}.export"
             android:exported="false"
             android:grantUriPermissions="true" />
+
+        <!-- 接收 App 內更新的安裝結果（PackageInstaller session） -->
+        <receiver
+            android:name=".update.UpdateInstallReceiver"
+            android:exported="false" />
     </application>
 </manifest>

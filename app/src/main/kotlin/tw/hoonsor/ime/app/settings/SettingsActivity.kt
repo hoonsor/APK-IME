@@ -16,9 +16,14 @@ import android.widget.TextView
 import android.widget.Toast
 import tw.hoonsor.ime.app.UserPhraseStore
 import tw.hoonsor.ime.app.ui.dpi
+import tw.hoonsor.ime.app.update.CheckResult
+import tw.hoonsor.ime.app.update.ReleaseInfo
+import tw.hoonsor.ime.app.update.UpdateChecker
+import tw.hoonsor.ime.app.update.UpdateDialog
+import tw.hoonsor.ime.app.update.UpdateInstaller
 
 /**
- * 設定頁（參數設定）：啟用輸入法、測試、偏好開關、詞庫備份／還原（D4）。
+ * 設定頁（參數設定）：啟用輸入法、測試、偏好開關、詞庫備份／還原（D4）、App 更新。
  * 只用 Android 框架元件，不依賴 AndroidX。
  */
 class SettingsActivity : Activity() {
@@ -135,6 +140,22 @@ class SettingsActivity : Activity() {
                 .show()
         }
 
+        title("6. App 更新")
+        col.addView(TextView(this).apply {
+            text = "目前版本 v${UpdateChecker.currentVersion}"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+        })
+        val updateStatus = TextView(this).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            visibility = android.view.View.GONE
+        }
+        button("檢查更新") { checkUpdate(updateStatus) }
+        col.addView(updateStatus)
+        col.addView(TextView(this).apply {
+            text = "每天第一次打開這個設定頁時會自動檢查一次。新版從 GitHub 下載後由系統安裝，字典、設定與 API key 都會保留。"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        })
+
         val scroll = ScrollView(this).apply {
             addView(col)
             isFillViewport = true
@@ -149,6 +170,53 @@ class SettingsActivity : Activity() {
             }
         }
         setContentView(scroll)
+        autoCheckUpdate()
+    }
+
+    // =====================================================================
+    // App 更新（update 套件）
+    // =====================================================================
+
+    private var updateDialog: UpdateDialog? = null
+
+    override fun onResume() {
+        super.onResume()
+        updateDialog?.onResume()
+    }
+
+    /** 每天最多一次，在背景查 GitHub；有新版才跳對話框，錯誤一律安靜略過 */
+    private fun autoCheckUpdate() {
+        UpdateInstaller.cleanup(this)
+        io.execute {
+            val r = runCatching { UpdateChecker.autoCheck(this) }.getOrNull() ?: return@execute
+            main.post { showUpdate(r, skippable = true) }
+        }
+    }
+
+    private fun checkUpdate(status: TextView) {
+        status.visibility = android.view.View.VISIBLE
+        status.text = "檢查中…"
+        io.execute {
+            val r = UpdateChecker.check()
+            main.post {
+                if (isFinishing) return@post
+                when (r) {
+                    is CheckResult.Available -> { status.visibility = android.view.View.GONE; showUpdate(r.release, skippable = false) }
+                    CheckResult.UpToDate -> status.text = "已經是最新版"
+                    is CheckResult.Failed -> status.text = "無法檢查更新：${r.reason}"
+                }
+            }
+        }
+    }
+
+    private fun showUpdate(r: ReleaseInfo, skippable: Boolean) {
+        if (isFinishing || isDestroyed || updateDialog != null) return
+        updateDialog = UpdateDialog(
+            activity = this,
+            release = r,
+            onSkip = if (skippable) ({ UpdateChecker.skip(this, r.tag) }) else null,
+            onClosed = { updateDialog = null },
+        ).also { it.show() }
     }
 
     @Deprecated("Framework Activity API")
@@ -299,6 +367,7 @@ class SettingsActivity : Activity() {
     }
 
     override fun onDestroy() {
+        UpdateInstaller.onInstallError = null // 不讓已關閉的對話框留著這個 Activity
         io.shutdown()
         super.onDestroy()
     }

@@ -9,7 +9,7 @@
 
 ## 1. 專案目的
 
-- **倬注音**：倬個人自用的 Android 輸入法（OPPO Reno 14F，ColorOS），側載 debug APK，不上架、不商用。
+- **倬注音**：倬個人自用的 Android 輸入法（OPPO Reno 14F，ColorOS），側載安裝（v0.7.0 起由 GitHub Releases 發布共用簽章正式版，手機用 App 內更新或 Obtainium），不上架、不商用。
 - 打字沿用**超注音**的操作（大千鍵盤、簡拼、逐字選字建詞、扇子、編輯面板、剪貼簿），UI 盡量還原超注音，讓倬不用重新學。
 - 語音做到 **Typeless 等級**：雲端 STT ＋ LLM 潤飾（去贅字、改口、標點、繁體台灣用語）、說話修改、翻譯。
 - 痛點：Typeless 潤飾好，但自訂慣用詞常辨識錯；超注音的語音沒有潤飾與改寫。→ 注音建立的自建詞、英文詞會自動注入 STT prompt 與潤飾提示。
@@ -35,13 +35,17 @@
 3. Sync 後：
    ```bash
    ./gradlew :engine:zhuyin:test     # 注音引擎單元測試（22 項）
-   ./gradlew :feature:voice:test     # 語音文字規則測試（VoiceTextTest，13 項）
+   ./gradlew :feature:voice:test     # 語音文字規則測試（VoiceTextTest、HallucinationCorpusTest）
+   ./gradlew :app:testDebugUnitTest  # App 內更新的版本比較、Release 解析
    ./gradlew :app:assembleDebug
    ./gradlew :app:installDebug       # 或 Android Studio ▶ Run
    ```
 4. 覆蓋安裝會保留字典與設定；**解除安裝會清掉字典、API key（Keystore）**——先用設定頁「匯出字典」。
 5. 雲端（Claude Code 沙盒）無法連 Maven／Google Maven：只能用 kotlinc 對 `android.jar`（API 35）做型別檢查與純邏輯測試，產生不了 APK。
-6. 倬電腦上的專案資料夾（dev 底下的 `zhuyin-voice-ime`）目前**沒有追蹤 GitHub 分支**（本機分支 `feat/zhuyin`，Pull 會失敗）。現行做法：AI 推上 GitHub 後，再透過裝置橋接把檔案直接寫進該資料夾，倬只要 Sync＋Run。
+6. 倬電腦上的專案資料夾（`D:/dev/zhuyin-voice-ime`）已是 `main` 追蹤 `origin/main` 的正常 clone（2026/10/18 確認）。
+7. **發新版**：改 `app/build.gradle.kts` 的 `versionCode`／`versionName`，在 `PROJECT_STATUS.md` 版本歷程表最上面加一列，推送 main 與同名 `vX.Y.Z` tag；GitHub Actions（`.github/workflows/build.yml`）用共用簽章編譯並發布 Release。細節見 README「8. 如何發新版」。
+8. **簽章**：release 從環境變數 `SIGNING_KEYSTORE_PATH`、`SIGNING_STORE_PASSWORD`、`SIGNING_KEY_ALIAS`、`SIGNING_KEY_PASSWORD` 讀共用金鑰，沒有時退回 debug 簽章（無法覆蓋安裝正式版）。不要把金鑰或密碼放進 repo。
+9. **App 內更新**（`app/.../update/`）：只在設定頁檢查與下載，鍵盤服務不連網；UI 用框架 AlertDialog＋執行緒，不要改成 Compose／coroutines。
 
 ## 4. 目錄與架構
 
