@@ -1,0 +1,280 @@
+# 產生：2026-10-16 corpus_factory.py（MiniMax 生成＋盲驗）。278 段（keep 196／drop 82，盲驗通過率 84%）
+id	label	text
+h0000	keep	謝謝你昨天幫我代班
+h0001	keep	記得幫我訂閱那個 Podcast 我想聽
+h0002	keep	媽說再見前要先吃完飯
+h0003	keep	我對那個頻道按讚了
+h0004	keep	收到感謝信了等等回
+h0005	keep	謝啦我到了
+h0006	keep	跟客戶說再見之後記得寄報價單
+h0007	keep	今晚聚餐掰掰下次見喔
+h0008	keep	thank you 那個檔案我收到了
+h0009	keep	老闆說謝謝大家今天的辛苦
+h0010	keep	跟你說 bye 之後就要開會了
+h0011	keep	觀看紀錄記得清一下
+h0012	keep	好
+h0013	keep	收到
+h0014	keep	等我一下
+h0015	keep	在路上了
+h0016	keep	到了跟你講
+h0017	keep	沒問題
+h0018	keep	好喔
+h0019	keep	晚點回你
+h0020	keep	我先走了
+h0021	keep	明天見
+h0022	keep	好喔好喔
+h0023	keep	嗯嗯了解
+h0024	keep	謝謝你昨天幫我代課
+h0025	keep	記得幫我訂閱那個 Podcast 我要聽
+h0026	keep	已經按讚了 你看一下
+h0027	keep	謝謝媽幫我煮晚餐 辛苦了
+h0028	keep	那我們下次見囉 記得回我訊息
+h0029	keep	再見 路上小心喔
+h0030	keep	感謝你這次幫忙趕報告
+h0031	keep	Bye 明天聊喔
+h0032	keep	我幫你訂閱頻道了
+h0033	keep	謝謝老師今天教我們
+h0034	keep	今晚節目記得收看 主持人會提到你
+h0035	keep	影片觀看次數破萬了 太厲害
+h0036	keep	Thank you for helping me today
+h0037	keep	你到了再跟我說 我在樓下等你
+h0038	keep	明天下午三點開會 記得帶筆電
+h0039	keep	幫我買一杯咖啡 謝謝
+h0040	keep	東西放在門口就好了 bye
+h0041	keep	今天開會的筆記我晚點整理給你
+h0042	keep	謝謝你昨天幫我代班，改天請你喝咖啡
+h0043	keep	記得幫我訂閱那個 Podcast，後面還有幾集我還沒聽
+h0044	keep	這次的提案真的要感謝你幫忙整理
+h0045	keep	明天開會幫我帶筆電
+h0046	keep	再見啦，明天公司見喔
+h0047	keep	影片看完幫我按讚一下
+h0048	keep	今晚八點的直播記得收看喔
+h0049	keep	等我一下，馬上到
+h0050	keep	下次見記得把那本書帶給我
+h0051	keep	我先走了喔 bye bye
+h0052	keep	thank you 幫我 cover 一下會議
+h0053	keep	冰箱裡還有昨天的便當，記得熱來吃
+h0054	keep	感謝老天終於放假了
+h0055	keep	幫我買一杯大冰奶
+h0056	keep	謝謝媽今天幫我準備便當
+h0057	keep	今天可能會加班到比較晚
+h0058	keep	再見路上小心喔
+h0059	keep	記得吃早餐再出門
+h0060	keep	會議改到下午三點半
+h0061	keep	我到樓下了
+h0062	keep	你出門了沒
+h0063	keep	今天天氣不錯適合出門走走
+h0064	keep	我到了
+h0065	keep	感謝主管今天幫我們爭取到這個案子
+h0066	keep	記得幫我訂閱那個 Podcast 我開車時想聽
+h0067	keep	我剛按讚你的貼文了 拍得很好看
+h0068	keep	那個 YouTube 頻道記得訂閱 不然會看不到更新
+h0069	keep	謝謝媽 晚餐很好吃
+h0070	keep	收到你的訊息了 晚點再回
+h0071	keep	下次見面再把那本書還你
+h0072	keep	bye 我先去上課了
+h0073	keep	謝謝醫生提醒 藥我會按時吃
+h0074	keep	感謝你提醒我 不然我一定會忘記
+h0075	keep	老師說作業不用交了 bye
+h0076	keep	你推薦的影片我已經收看完了 拍得很棒
+h0077	keep	會議結束再聯絡我 bye
+h0078	keep	今晚聚餐取消喔 謝謝大家
+h0079	keep	拜託幫我按讚這篇貼文
+h0080	keep	我在捷運上等等回你
+h0081	keep	謝謝你幫我買咖啡 下次換我請你
+h0082	keep	明天開會資料記得帶 bye
+h0083	keep	我出門了
+h0084	keep	到公司了
+h0085	keep	晚安
+h0086	keep	早安
+h0087	keep	我現在在捷運上比較晚到
+h0088	keep	記得買牛奶跟雞蛋
+h0089	keep	今天加班到八點不用等我吃飯
+h0090	keep	開會時間改到三點
+h0091	keep	感謝老闆今天的指導
+h0092	keep	幫我按讚那則貼文
+h0093	keep	下次見喔
+h0094	keep	好的再見
+h0095	keep	Bye 晚點聊
+h0096	keep	Thank you 幫我買咖啡
+h0097	keep	謝謝媽媽幫我照顧小孩
+h0098	keep	感謝大家的祝福
+h0099	keep	記得幫我訂閱那個 Podcast，我要聽
+h0100	keep	明天記得收看公司的線上研討會
+h0101	keep	收到你的訊息了，謝謝提醒
+h0102	keep	可以幫我按讚那篇貼文嗎，拜託
+h0103	keep	再見，今天先聊到這裡
+h0104	keep	bye 一下喔，晚點再打給你
+h0105	keep	謝謝媽，我會注意安全的
+h0106	keep	thank you for the update，我收到了
+h0107	keep	下次見你請吃飯當作感謝
+h0108	keep	馬上到
+h0109	keep	晚點說
+h0110	keep	提醒我下午三點開會
+h0111	keep	我今天會晚一點到家，記得先吃飯
+h0112	keep	老闆說報告明天早上要交
+h0113	keep	便利商店順便幫我帶個飯糰
+h0114	keep	洗衣機的衣服忘了曬
+h0115	keep	車子記得加油，明天要去南部
+h0116	keep	謝謝你幫我拿包裹
+h0117	keep	明天會下雨記得帶傘
+h0118	keep	謝謝老師今天的指導
+h0119	keep	媽我到公司了
+h0120	keep	Thank you for the gift
+h0121	keep	下班後去全聯買個雞蛋
+h0122	keep	收到感謝你的訊息
+h0123	keep	先這樣晚點再說
+h0124	keep	媽說謝謝你們送的芒果
+h0125	keep	我到樓下了 快點下來
+h0126	keep	鑰匙好像放在玄關
+h0127	keep	客戶說下週二見面確認合約
+h0128	keep	文件我放在你桌上了
+h0129	keep	謝啦 改天請你喝咖啡
+h0130	keep	再見 今天辛苦了
+h0131	keep	先這樣 bye 晚點聊
+h0132	keep	路上小心 到家說一聲
+h0133	keep	幫我買兩個便當
+h0134	keep	明天記得帶傘
+h0135	keep	thank you 你的禮物我收到了
+h0136	keep	我到家了 謝謝你來接我
+h0137	keep	到了打給我
+h0138	keep	我看一下
+h0139	keep	先這樣
+h0140	keep	OK 啦
+h0141	keep	記得幫我訂閱那個 Podcast
+h0142	keep	再見喔 明天見
+h0143	keep	感謝你這次的幫忙
+h0144	keep	我已經幫你按讚了
+h0145	keep	Bye 明天公司見
+h0146	keep	謝謝媽 我會注意安全
+h0147	keep	那我們下次見
+h0148	keep	拜拜 明天見
+h0149	keep	謝謝你昨天幫我代課，下週換我
+h0150	keep	記得幫我訂閱那個 Podcast，明天通勤要聽
+h0151	keep	感謝你今天幫我 cover 那通客戶電話
+h0152	keep	到了
+h0153	keep	再見啦，明天見
+h0154	keep	下次見記得帶那份報價單
+h0155	keep	bye 我先去接小孩
+h0156	keep	幫我按個讚，那篇是我寫的
+h0157	keep	謝謝媽，今天晚餐很好吃
+h0158	keep	thank you 幫我處理那個急件
+h0159	keep	我回你
+h0160	keep	客戶的感謝信我先擬，你過目一下
+h0161	keep	下次見面我們再談合作細節
+h0162	keep	OK 喔
+h0163	keep	謝謝你昨天幫我帶小孩
+h0164	keep	感謝你幫我處理那個 bug
+h0165	keep	跟客戶說再見的時候要微笑
+h0166	keep	下次見面記得帶那個檔案
+h0167	keep	我先 bye 了你們慢慢聊
+h0168	keep	thank you 你的禮物收到了
+h0169	keep	那部電影觀看人數破百萬
+h0170	keep	謝謝大家今天來參加聚會
+h0171	keep	感謝老天爺今天天氣不錯
+h0172	keep	拜託幫我按讚那則貼文
+h0173	keep	我已經訂閱那個電子報了
+h0174	keep	再見路上小心一點
+h0175	keep	下次見記得把那本書還我
+h0176	keep	今天的會議改到下午三點
+h0177	keep	冰箱還有昨天買的便當
+h0178	keep	好的沒問題
+h0179	keep	記得幫我訂閱那個 Podcast，下週要聽
+h0180	keep	老闆說感謝大家這個月的努力
+h0181	keep	你那個影片記得按讚跟留言喔
+h0182	keep	明天開會資料傳給你了，再見
+h0183	keep	好喔下次見面再聊細節
+h0184	keep	拜拜，晚安
+h0185	keep	我先走囉 bye 明天見
+h0186	keep	謝謝媽今天幫我帶小孩
+h0187	keep	thank you for the birthday card
+h0188	keep	今天謝謝你請客，下次換我
+h0189	keep	出門前確認門窗有沒有關好
+h0190	keep	提醒我明天十點打電話給客戶
+h0191	keep	買牛奶雞蛋還有衛生紙回來
+h0192	keep	等一下到公司再跟你說
+h0193	keep	開會時間改到下午三點
+h0194	keep	你有看到我傳的那個連結嗎
+h0195	keep	等等我到了再打給你
+h0196	drop	謝謝收看
+h0197	drop	Thank you for watching
+h0198	drop	請訂閱我的頻道
+h0199	drop	Please subscribe to my channel
+h0200	drop	字幕由 Amara.org 社群提供
+h0201	drop	Subtitles by the Amara.org community
+h0202	drop	謝謝觀看，請訂閱、點讚、分享
+h0203	drop	Thanks for watching, please subscribe, like, and share
+h0204	drop	Thank you for watching. Thank you for watching. Thank you for watching.
+h0205	drop	Thank you, thank you, thank you, thank you, thank you.
+h0206	drop	謝謝謝謝謝謝謝謝謝謝謝謝謝謝謝謝謝
+h0207	drop	訂閱訂閱訂閱訂閱訂閱訂閱訂閱訂閱
+h0208	drop	請訂閱 請訂閱 請訂閱 請訂閱 請訂閱
+h0209	drop	Thank you for watching! Please subscribe! See you next time!
+h0210	drop	Bye bye bye bye bye bye
+h0211	drop	See you next time. See you next time. See you next time.
+h0212	drop	謝謝收看。謝謝收看。謝謝收看。
+h0213	drop	Thank you for watching, thank you for watching, thank you for watching
+h0214	drop	Thanks! Thanks! Thanks!
+h0215	drop	我我我我我我我我我
+h0216	drop	The the the the the the the the
+h0217	drop	謝謝謝謝謝謝謝謝
+h0218	drop	Thank you thank you thank you thank you
+h0219	drop	的、的、的、的、的、的
+h0220	drop	拜拜拜拜拜拜拜
+h0221	drop	字幕由 Amara.org 社群提供，字幕由 Amara.org 社群提供
+h0222	drop	Thanks for watching. Please subscribe. See you next time.
+h0223	drop	Thank you for watching.
+h0224	drop	Please subscribe to my channel!
+h0225	drop	Subtitles by Amara.org community
+h0226	drop	訂閱 訂閱 訂閱 訂閱 訂閱
+h0227	drop	subscribe subscribe subscribe subscribe
+h0228	drop	拜拜～我們下次見
+h0229	drop	Bye bye~ See you next time
+h0230	drop	按讚留言分享 訂閱開啟小鈴鐺
+h0231	drop	Like, comment, share! Subscribe and hit the bell!
+h0232	drop	謝謝觀看！請訂閱！拜拜！
+h0233	drop	Thanks for watching! Please subscribe! Bye!
+h0234	drop	感謝您的觀看，請訂閱、按讚、開啟小鈴鐺
+h0235	drop	Thank you for watching, please subscribe, like, and turn on notifications.
+h0236	drop	記得按讚訂閱分享哦～
+h0237	drop	Don't forget to like, subscribe, and share~
+h0238	drop	謝謝收看，謝謝收看，謝謝收看
+h0239	drop	訂閱！訂閱！訂閱！
+h0240	drop	Subscribe! Subscribe! Subscribe!
+h0241	drop	如果你喜歡這個影片，請訂閱我的頻道
+h0242	drop	If you enjoyed this video, please subscribe to my channel.
+h0243	drop	我們下次見！拜拜！謝謝收看！
+h0244	drop	謝謝收看，謝謝收看
+h0245	drop	Thank you for watching. Thank you for watching.
+h0246	drop	請訂閱，請訂閱，請訂閱
+h0247	drop	Thanks for watching!
+h0248	drop	Bye bye bye bye
+h0249	drop	謝謝 謝謝 謝謝 謝謝 謝謝
+h0250	drop	請按讚訂閱分享
+h0251	drop	Like, share, and subscribe
+h0252	drop	謝謝收看！！！
+h0253	drop	Thank you for watching!!!
+h0254	drop	字幕由Amara.org社群提供
+h0255	drop	subtitles by amara.org community
+h0256	drop	感謝觀看，請訂閱我的頻道
+h0257	drop	Thank you for watching. Please subscribe.
+h0258	drop	Thank you for watching!
+h0259	drop	Please subscribe to my channel.
+h0260	drop	See you in the next video
+h0261	drop	下次見!
+h0262	drop	Like and subscribe!
+h0263	drop	點讚,訂閱,分享
+h0264	drop	Thank you, thank you, thank you
+h0265	drop	謝謝 謝謝 謝謝 謝謝 謝謝 謝謝
+h0266	drop	Thank you for watching. Please subscribe to my channel. Thanks for watching.
+h0267	drop	請訂閱我的頻道,謝謝觀看!
+h0268	drop	Thank you! Thank you! Thank you!
+h0269	drop	Bye bye, see you next time.
+h0270	drop	再見,下次再見
+h0271	drop	Please like, comment, and subscribe.
+h0272	drop	請按讚、留言、訂閱
+h0273	drop	Thank you so much for watching this video.
+h0274	drop	非常感謝您的觀看
+h0275	drop	For more information, please visit our website.
+h0276	drop	Copyright © 2023. All rights reserved.
+h0277	drop	Thanks for tuning in!

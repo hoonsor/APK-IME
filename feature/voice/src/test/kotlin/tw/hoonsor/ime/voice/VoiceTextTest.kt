@@ -45,6 +45,30 @@ class VoiceTextTest {
         assertTrue(Hallucination.isHallucination("通過 通過 通過 通過 通過 通過 通過 通過 通過 通過 通過 通過"))
     }
 
+    @Test fun hallucinationVariantsDropped() {
+        assertTrue(Hallucination.isHallucination("請訂閱我的頻道"))
+        assertTrue(Hallucination.isHallucination("Please subscribe to my channel!"))
+        assertTrue(Hallucination.isHallucination("感謝觀看，請訂閱我的頻道"))
+        assertTrue(Hallucination.isHallucination("感謝您的觀看，請訂閱、按讚、開啟小鈴鐺"))
+        assertTrue(Hallucination.isHallucination("Thanks for watching, please subscribe, like, and share"))
+        assertTrue(Hallucination.isHallucination("拜拜～我們下次見"))
+        assertTrue(Hallucination.isHallucination("謝謝 謝謝 謝謝"))
+        assertTrue(Hallucination.isHallucination("Bye bye bye bye"))
+        assertTrue(Hallucination.isHallucination("謝謝謝謝謝謝"))
+        assertTrue(Hallucination.isHallucination("我我我我我我我我我"))
+        assertTrue(Hallucination.isHallucination("謝謝收看，謝謝收看"))
+        assertTrue(Hallucination.isHallucination("記得按讚訂閱分享哦～"))
+        assertTrue(Hallucination.isHallucination("再見,下次再見"))
+    }
+
+    @Test fun shortRepliesAndTrapSentencesKept() {
+        for (s in listOf("好好好", "對對對", "哈哈哈哈", "好喔好喔", "嗯嗯了解", "拜拜", "分享", "Thanks",
+            "拜拜，晚安", "再見啦，明天見", "收到你的訊息了，謝謝提醒", "可以幫我按讚那篇貼文嗎，拜託",
+            "那我們下次見", "下次見喔", "我先走了喔 bye bye", "再見", "再見，路上小心", "再見，今天先聊到這裡")) {
+            assertTrue(s, !Hallucination.isHallucination(s))
+        }
+    }
+
     @Test fun normalSentenceKept() {
         assertTrue(!Hallucination.isHallucination("記得分享給大家，也幫我訂閱那個頻道。"))
         assertTrue(!Hallucination.isHallucination("明天下午兩點開會。不對,三點。"))
