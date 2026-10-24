@@ -17,7 +17,7 @@
 | TEXT_BRIGHT | `#E6F5FB` | 強調文字 |
 | ICON | `#8FC1D4` | 工具列圖示 |
 | ACCENT | `#FFD27A` | AI、＋加入字典、提示、額度提醒標題 |
-| PINK | `#F2A7C3` | 標點手勢鍵左下角「，」 |
+| PINK | `#F2A7C3` | 四符號鍵左下角（點一下送出的符號） |
 | HILITE_BG／HILITE_TEXT | `#D9D9D9`／`#161616` | 第一個候選反白 |
 | AI_BG | `#2F4A55` | 編輯面板 AI 欄、剪貼簿 chip |
 | DIVIDER | `#262626` | 分隔線 |

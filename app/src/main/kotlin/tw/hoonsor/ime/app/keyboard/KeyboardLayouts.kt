@@ -19,8 +19,22 @@ sealed interface KeyAction {
     /** 扇子鍵（K3）：按住滑動選擇。 */
     data object Fan : KeyAction
 
-    /** 標點手勢鍵（K2a）：點 = ，、↖？ ↗、 ↘！ ↙， */
-    data object Punct : KeyAction
+    /**
+     * 四符號手勢鍵（K2a）：點一下 = 左下（粉紅色）；按住往 ↖ ↗ ↘ ↙ 滑放開 = 該角的符號。
+     * 鍵面四角顯示對應符號；可以是多個字（例如 .com）。
+     */
+    data class Punct(
+        val downLeft: String,
+        val upLeft: String,
+        val upRight: String,
+        val downRight: String,
+    ) : KeyAction {
+        /** 依手指位移決定送出哪個角的符號；位移很小視為點一下。 */
+        fun pick(dx: Float, dy: Float, tapSlop: Float): String {
+            if (kotlin.math.abs(dx) < tapSlop && kotlin.math.abs(dy) < tapSlop) return downLeft
+            return if (dy < 0) (if (dx < 0) upLeft else upRight) else (if (dx < 0) downLeft else downRight)
+        }
+    }
 
     /** 符號鍵盤圖釘（K4）。 */
     data object Pin : KeyAction
@@ -52,6 +66,16 @@ enum class FanItem(val glyph: String, val title: String) {
 
 object KeyboardLayouts {
 
+    // 四符號手勢鍵（參數順序：左下＝點一下、左上、右上、右下）
+    /** 注音空白鍵左邊：點 = ，、↖？ ↗、 ↘！ */
+    val ZHUYIN_PUNCT_LEFT = KeyAction.Punct("，", "？", "、", "！")
+    /** 注音空白鍵右邊（倬，2026-10-25）：點 = 。、↖& ↗● ↘（ */
+    val ZHUYIN_PUNCT_RIGHT = KeyAction.Punct("。", "&", "●", "（")
+    /** 英文空白鍵左邊（倬，2026-10-25）：點 = @、↖, ↗- ↘_ */
+    val ENGLISH_PUNCT_LEFT = KeyAction.Punct("@", ",", "-", "_")
+    /** 英文空白鍵右邊（倬，2026-10-25）：點 = .com、↖. ↗~ ↘; */
+    val ENGLISH_PUNCT_RIGHT = KeyAction.Punct(".com", ".", "~", ";")
+
     /** 大千式注音（倬的截圖）。 */
     val ZHUYIN: List<List<KeyDef>> by lazy {
         val rows = listOf(
@@ -64,9 +88,9 @@ object KeyboardLayouts {
             listOf(
                 KeyDef("ABC", KeyAction.ToEnglish, style = KeyStyle.DARK, textSizeSp = 15f),
                 KeyDef("", KeyAction.Fan, style = KeyStyle.DARK),
-                KeyDef("", KeyAction.Punct),
+                KeyDef("", ZHUYIN_PUNCT_LEFT),
                 KeyDef("", KeyAction.Space, weight = 1.7f),
-                KeyDef("。", KeyAction.Commit("。")),
+                KeyDef("", ZHUYIN_PUNCT_RIGHT),
                 KeyDef("ㄦ", KeyAction.Zhuyin('ㄦ')),
                 KeyDef("", KeyAction.Backspace, style = KeyStyle.DARK),
                 KeyDef("", KeyAction.Enter, style = KeyStyle.DARK),
@@ -115,9 +139,10 @@ object KeyboardLayouts {
         rows += listOf(
             KeyDef("注", KeyAction.ToZhuyin, weight = 1.2f, style = KeyStyle.DARK, textSizeSp = 18f),
             KeyDef("", KeyAction.Fan, style = KeyStyle.DARK),
-            KeyDef(",", KeyAction.Commit(",")),
-            KeyDef("", KeyAction.Space, weight = 3.6f),
-            KeyDef(".", KeyAction.Commit(".")),
+            // 空白鍵縮窄，讓兩側四符號鍵寬一點（右鍵有「.com」）
+            KeyDef("", ENGLISH_PUNCT_LEFT, weight = 1.4f),
+            KeyDef("", KeyAction.Space, weight = 2.8f),
+            KeyDef("", ENGLISH_PUNCT_RIGHT, weight = 1.6f),
             KeyDef("", KeyAction.Enter, weight = 1.5f, style = KeyStyle.DARK),
         )
         return rows

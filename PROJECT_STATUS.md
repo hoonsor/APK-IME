@@ -1,6 +1,6 @@
 # 倬注音（APK-IME）— 專案狀態
 
-> 目前版本：v0.7.0 ｜ 最後更新：2026/10/18
+> 目前版本：v0.7.1 ｜ 最後更新：2026/10/25
 > 專案規則與架構見 `AGENTS.md`；每日開發細節見 `docs/STATUS_ZHUYIN.md`。
 
 ## 📌 專案概述
@@ -24,6 +24,7 @@
 - [x] 推上 GitHub（hoonsor/APK-IME）、README、CLAUDE.md、PROJECT_STATUS.md 版本歷程（2026/10/11）
 - [x] 半形符號第一頁重排、字典匯出／分享／匯入（2026/10/12）
 - [x] 補齊交接文件：AGENTS.md、README 使用說明、DESIGN.md、AGENT_API.md、agent-manifest.json（2026/10/13）
+- [x] 四符號鍵：注音「。」鍵、英文「,」「.」鍵改為四符號手勢鍵，英文空白鍵縮窄（2026/10/25）
 - [ ] Hoonsor Agent API v1 實作（目前只有規劃，見 `docs/AGENT_API.md`）
 - [x] 共用簽章、GitHub Actions 自動編譯（tag → Release、main → latest）、App 內更新（2026/10/18）
 - [ ] 流程標準補齊：備份 zip、健康檢查頁、LAB 版
@@ -33,6 +34,7 @@
 - [ ] 錄音與真實 API 呼叫；靜音門檻 `SILENCE_RMS = 0.008` 校正（Logcat tag `VoiceController` 會印 peakRms／voicedFrames，不含文字）
 - [ ] MiniMax-M3 延遲（文字 AI）；語音潤飾改用 Groq 後的速度
 - [ ] 符號翻頁、半形第一頁順序、成對符號
+- [ ] 四符號鍵（v0.7.1）：四個方向是否好滑、英文右鍵「.com」字是否看得清楚、英文空白鍵寬度是否夠用、注音「（」自動補「）」是否想要
 - [ ] 額度提醒視窗、備用 API key 切換
 - [ ] AI 全文改寫（潤飾全文、AI 寫作、翻英全文）在 LINE、Messenger 等 App
 - [ ] 字典匯出分享到 Google Drive／Dropbox；Excel 編輯後匯入（合併、取代、復原）
@@ -58,6 +60,7 @@
 
 | 版本 | 日期 | Commit | 變更內容 | 為什麼 |
 |---|---|---|---|---|
+| v0.7.1 | 2026/10/25 | （本筆提交） | feat(keyboard): 注音空白鍵右邊「。」改為四符號鍵（點。↖& ↗● ↘（）；英文空白鍵左右改為四符號鍵（點@ ↖, ↗- ↘_／點.com ↖. ↗~ ↘;），空白鍵縮窄；`.com` 也會累積進英文詞 | 倬要常用的 & ● （ 與 email 符號一鍵就到 |
 | v0.7.0 | 2026/10/18 | （本筆提交） | feat: 免接線更新：GitHub Actions 用共用簽章編譯發布 Release（main 另發 latest 測試版）；設定頁「App 更新」可檢查、下載並用系統安裝新版，每天第一次開設定頁自動檢查。fix(voice): 幻聽過濾加強（黏在一起的重複套話、整段都是套話的子句） | 倬要手機不接線就能更新；debug 版每次簽章不同，無法覆蓋安裝 |
 | v0.6.1 | 2026/10/13 | （本筆提交） | docs: 補齊交接文件與使用說明（AGENTS.md、README、DESIGN、AGENT_API、manifest、FEATURES 補項） | 讓其他 AI 不看對話紀錄也能接手；讓 AI 大腦知道能用語音呼叫哪些動作 |
 | v0.6.0 | 2026/10/12 | 6caec39 | feat(dict): 字典匯出 CSV（Excel／Google 試算表可編輯）、分享到 Google Drive／Dropbox、匯入（合併／取代、自動補注音、匯入前自動備份可復原） | 倬要在電腦編輯字典再匯回手機，並定期備份到雲端 |
@@ -90,4 +93,5 @@
 | 2026/10/11 | 未記錄（雲端對話） | 實機回饋修正、符號翻頁、備用 key、額度提醒、推上 GitHub、CLAUDE.md、技能改用 CLAUDE.md 與直接推送 | 直接 commit／push 並留版本紀錄（倬授權）；備用 key 只放同帳號或付費 key | 第二個 Groq 帳號（違反條款）；語音潤飾用 MiniMax（太慢）；Whisper 潤飾（做不到） | tag 推不上 GitHub | 實機驗證 | Gradle JDK 要選 jbr-21；專案要放英文路徑 |
 | 2026/10/12 | 未記錄（雲端對話） | 半形第一頁重排、字典匯出／分享／匯入；用裝置橋接把 v0.6.0 寫進倬電腦的專案資料夾（`zhuyin-voice-ime`） | 字典用 CSV（倬要用 Excel 編輯）；自寫 ExportProvider（不依賴 AndroidX） | AndroidX FileProvider；叫倬在本機 Pull（本機分支無 upstream，試多次失敗） | 實機驗證匯出入 | 倬實機測試 | 本機資料夾不是 GitHub 的乾淨 clone |
 | 2026/10/13 | A（家裡；依 Project 名稱推測，待倬確認） | 補齊交接文件（AGENTS.md 等） | 以 AGENTS.md 為唯一規則來源，舊文件標「已併入」保留 | — | Agent API 實作、流程標準補齊 | 見「下一步」 | — |
+| 2026/10/25 | 未確認（電腦名稱 DESKTOP-5DM4EDT） | 四符號鍵（注音右鍵、英文左右鍵）、`Punct` 改為帶四角符號的 data class、新增 PunctKeyTest | 四符號鍵沿用一般符號鍵流程（成對符號、英文詞累積、大寫一次性解除）；寬文字（.com）自動內縮或縮小字級 | — | 實機驗證、推 v0.7.1 tag | 倬實機回饋 | Android Studio 內建 JBR 是 Java 25（Gradle 8.9 不能用），命令列建置要設 `JAVA_HOME=C:/Users/hoonsor/.jdks/jbr-21.0.11` |
 | 2026/10/18 | A（家裡） | 幻聽過濾提交、共用簽章、GitHub Actions、App 內更新（框架元件版，移植自鬧鐘 APP） | 更新 UI 用 AlertDialog＋執行緒（專案不用 AndroidX／coroutines）；只在設定頁檢查，鍵盤不連網 | — | 推 tag、實機驗證換簽章 | 見「下一步」 | 本機建置用 `C:/Users/hoonsor/.jdks/jbr-21.0.11` |

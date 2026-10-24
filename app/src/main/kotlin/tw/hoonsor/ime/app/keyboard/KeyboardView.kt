@@ -122,13 +122,13 @@ class KeyboardView(context: Context) : View(context) {
         val cy = r.centerY()
         when (k.action) {
             KeyAction.Fan -> drawFan(c, cx, cy, dp(13f))
-            KeyAction.Punct -> {
-                val dx = r.width() * 0.18f
+            is KeyAction.Punct -> {
+                val a = k.action
                 val dy = r.height() * 0.17f
-                c.drawText("？", cx - dx, cy - dy + smallPaint.centerOffset(), smallPaint)
-                c.drawText("、", cx + dx, cy - dy + smallPaint.centerOffset(), smallPaint)
-                c.drawText("，", cx - dx, cy + dy + pinkPaint.centerOffset(), pinkPaint)
-                c.drawText("！", cx + dx, cy + dy + smallPaint.centerOffset(), smallPaint)
+                drawCorner(c, a.upLeft, r, cy - dy, left = true, smallPaint)
+                drawCorner(c, a.upRight, r, cy - dy, left = false, smallPaint)
+                drawCorner(c, a.downLeft, r, cy + dy, left = true, pinkPaint)
+                drawCorner(c, a.downRight, r, cy + dy, left = false, smallPaint)
             }
             KeyAction.Space -> {
                 val w = dp(18f)
@@ -167,6 +167,23 @@ class KeyboardView(context: Context) : View(context) {
                 }
             }
         }
+    }
+
+    /**
+     * 四符號鍵的一個角：一般符號放在距中心 18% 鍵寬處；
+     * 較寬的文字（例如 .com）往內收到不超出鍵緣，仍放不下就縮小字級，避免和另一側重疊。
+     */
+    private fun drawCorner(c: Canvas, text: String, r: RectF, y: Float, left: Boolean, p: android.graphics.Paint) {
+        val base = p.textSize
+        val pad = dp(3f)
+        val half = r.width() / 2f - pad * 1.5f
+        val w0 = p.measureText(text)
+        if (w0 > half) p.textSize = base * half / w0
+        val hw = p.measureText(text) / 2f
+        val dx = r.width() * 0.18f
+        val x = if (left) maxOf(r.centerX() - dx, r.left + pad + hw) else minOf(r.centerX() + dx, r.right - pad - hw)
+        c.drawText(text, x, y + p.centerOffset(), p)
+        p.textSize = base
     }
 
     /** 風車狀扇子圖示。 */
@@ -260,7 +277,7 @@ class KeyboardView(context: Context) : View(context) {
         when (k.action) {
             KeyAction.Backspace -> {} // 已在按下時送出
             KeyAction.Fan -> listener?.onFanEnd(x, y, fanDragged)
-            KeyAction.Punct -> listener?.onPunct(punctFor(x - downX, y - downY))
+            is KeyAction.Punct -> listener?.onPunct(k.action.pick(x - downX, y - downY, dp(12f)))
             else -> listener?.onKey(k)
         }
         invalidate()
@@ -271,12 +288,5 @@ class KeyboardView(context: Context) : View(context) {
         if (pressed?.action == KeyAction.Fan) listener?.onFanEnd(downX, downY, true)
         pressed = null
         invalidate()
-    }
-
-    /** 標點手勢：點 = ，；↖ ？；↗ 、；↘ ！；↙ ， */
-    private fun punctFor(dx: Float, dy: Float): String {
-        val t = dp(12f)
-        if (abs(dx) < t && abs(dy) < t) return "，"
-        return if (dy < 0) (if (dx < 0) "？" else "、") else (if (dx < 0) "，" else "！")
     }
 }

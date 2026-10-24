@@ -707,7 +707,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
                 symbolPage = (symbolPage + step + pages) % pages   // 最後一頁再按 ▼ 回到第一頁
                 applyLayout()
             }
-            KeyAction.Fan, KeyAction.Punct, KeyAction.Nop -> {} // 由手勢回呼處理／不做事
+            KeyAction.Fan, is KeyAction.Punct, KeyAction.Nop -> {} // 由手勢回呼處理／不做事
         }
         render()
     }
@@ -742,19 +742,14 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
 
     /** 英文／半形符號／數字連續輸入時累積起來，候選列可「＋加入字典」（需求七）。 */
     private fun trackWord(text: String) {
-        val ok = text.length == 1 && text[0].code in 0x21..0x7E && layout != Layout.ZHUYIN && !currentTarget.hints.isPassword
+        // 允許多字元的 ASCII（例如四符號鍵的 .com），abc@gmail.com 才能整串累積
+        val ok = text.isNotEmpty() && text.all { it.code in 0x21..0x7E } && layout != Layout.ZHUYIN && !currentTarget.hints.isPassword
         if (ok) wordBuf.append(text) else wordBuf.setLength(0)
         if (wordBuf.length > 64) wordBuf.setLength(0)
     }
 
-    override fun onPunct(text: String) {
-        commitComposing()
-        commitSymbol(text)
-        assoc = emptyList()
-        wordBuf.setLength(0)
-        pendingDelete = null
-        render()
-    }
+    /** 四符號手勢鍵：與一般符號鍵相同處理（成對符號、英文詞累積、大寫一次性解除）。 */
+    override fun onPunct(text: String) = onKey(KeyDef(text, KeyAction.Commit(text)))
 
     override fun onFanStart(cx: Float, cy: Float) {
         panels.showOverlay(Overlay.FAN)
