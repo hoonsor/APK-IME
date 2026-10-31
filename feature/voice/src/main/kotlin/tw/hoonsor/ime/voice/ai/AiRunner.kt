@@ -52,6 +52,14 @@ class AiRunner(context: Context, private val secrets: SecretStore, private val t
         emptyList()
     }
 
+    /** 詞庫替換；任何錯誤都回傳原文，不可讓語音失敗。 */
+    fun correctTranscript(text: String): String = try {
+        terms?.correctTranscript(text) ?: text
+    } catch (e: Exception) {
+        Log.w(TAG, "correctTranscript failed", e)
+        text
+    }
+
     /** 回傳 (結果, 使用的模型說明)。 */
     fun chat(primary: AiRole, backup: AiRole, system: String, user: String, timeoutMs: Int): Pair<String, String> =
         withFallback(primary, backup) { c -> AiHttp.chat(c, system, user, timeoutMs) }

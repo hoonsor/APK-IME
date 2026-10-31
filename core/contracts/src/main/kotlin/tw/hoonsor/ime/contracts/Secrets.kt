@@ -15,4 +15,7 @@ enum class SecretProvider {
 
     /** 備用 key（同帳號其他專案或付費 key）：主要 key 額度用完時自動改用。 */
     GROQ_2, MINIMAX_2, OPENAI_2,
+
+    /** 語音個人詞庫中心的裝置權杖。 */
+    VOCAB_HUB,
 }

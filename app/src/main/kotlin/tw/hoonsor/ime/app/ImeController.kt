@@ -20,6 +20,7 @@ import android.widget.Toast
 import tw.hoonsor.ime.app.ai.AiSettingsActivity
 import tw.hoonsor.ime.app.ai.AppVoiceTerms
 import tw.hoonsor.ime.app.ai.KeystoreSecretStore
+import tw.hoonsor.ime.app.ai.VocabHub
 import tw.hoonsor.ime.app.clipboard.ClipSearchStrip
 import tw.hoonsor.ime.app.clipboard.ClipboardHistory
 import tw.hoonsor.ime.app.clipboard.SearchTarget
@@ -81,7 +82,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
 
     // ---------- 語音與 AI ----------
     private val secrets = KeystoreSecretStore(service)
-    private val voiceTerms = AppVoiceTerms(store)
+    private val voiceTerms = AppVoiceTerms(store, VocabHub.get(service))
     private var voice: VoiceInputController? = null
     private var voicePanel: View? = null
     private val rewriter: TextRewriter = VoiceModule.createRewriter(service, secrets, voiceTerms)
@@ -351,6 +352,7 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
     // =====================================================================
 
     fun onStartInputView(info: EditorInfo?) {
+        VocabHub.syncIfStale(service)
         engine?.reset()
         engine?.let { if (store.externalVersion != syncedExternal) loadUserPhrases(it) }
         assoc = emptyList()

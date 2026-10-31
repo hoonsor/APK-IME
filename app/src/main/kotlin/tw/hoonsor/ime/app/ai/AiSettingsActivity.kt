@@ -12,6 +12,7 @@ import android.os.Looper
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
+import android.text.format.DateFormat
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -26,14 +27,17 @@ import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
+import tw.hoonsor.ime.app.UserPhraseStore
 import tw.hoonsor.ime.app.ui.dp
 import tw.hoonsor.ime.app.ui.dpi
+import tw.hoonsor.ime.contracts.SecretProvider
 import tw.hoonsor.ime.voice.ai.AiConfig
 import tw.hoonsor.ime.voice.ai.AiException
 import tw.hoonsor.ime.voice.ai.AiHttp
 import tw.hoonsor.ime.voice.ai.AiProvider
 import tw.hoonsor.ime.voice.ai.AiRole
 import tw.hoonsor.ime.voice.audio.AudioRules
+import java.util.Date
 import java.util.concurrent.Executors
 
 /**
@@ -79,6 +83,11 @@ class AiSettingsActivity : Activity() {
         col.addView(switchRow("按住說話（放開就送出）", config.holdToTalk) { config.holdToTalk = it })
         col.addView(switchRow("打開語音面板就自動開始錄音", config.autoStart) { config.autoStart = it })
 
+        // ---------- 語音個人詞庫 ----------
+        col.addView(section("4. 語音個人詞庫"))
+        col.addView(text("專案名、APP 名、公文術語一處維護，和語音總控、語音記帳共用。沒設定也能正常用，只是不會多這些詞。", 13f, alpha = 0.75f))
+        col.addView(vocabRow())
+
         setContentView(ScrollView(this).apply {
             addView(col)
             setOnApplyWindowInsetsListener { v, insets ->
@@ -94,6 +103,65 @@ class AiSettingsActivity : Activity() {
     override fun onDestroy() {
         io.shutdown()
         super.onDestroy()
+    }
+
+    // =====================================================================
+    // 語音個人詞庫
+    // =====================================================================
+
+    private fun vocabRow(): View {
+        val box = card()
+        val status = text("", 13f, alpha = 0.8f)
+        fun refresh() {
+            val s = VocabHub.get(this).status()
+            val time = if (s.lastSyncAt == 0L) "尚未同步" else "同步於 " + DateFormat.getTimeFormat(this).format(Date(s.lastSyncAt))
+            status.text = (if (secrets.has(SecretProvider.VOCAB_HUB)) "權杖已設定" else "尚未設定權杖") +
+                "・$time・${s.termCount} 詞・版本 ${s.revision ?: "—"}" +
+                (if (s.pending > 0) "・${s.pending} 筆待送" else "") +
+                (s.lastError?.let { " 上次錯誤：$it" } ?: "")
+        }
+        refresh()
+        box.addView(status)
+        val input = EditText(this).apply {
+            hint = "貼上裝置權杖（在詞庫網站的「裝置」頁產生）"
+            setSingleLine()
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        box.addView(input)
+        fun sync() {
+            status.text = "同步中…"
+            VocabHub.syncNow(this) { main.post { if (!isDestroyed) refresh() } }
+        }
+        val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        buttons.addView(Button(this).apply {
+            text = "儲存"
+            setOnClickListener {
+                if (input.text.isNotBlank()) secrets.setBlocking(SecretProvider.VOCAB_HUB, input.text.toString().trim())
+                input.setText("")
+                toast("已儲存")
+                sync()
+            }
+        })
+        buttons.addView(Button(this).apply {
+            text = "立即同步"
+            setOnClickListener { sync() }
+        })
+        buttons.addView(Button(this).apply {
+            text = "提案本機詞"
+            setOnClickListener {
+                val store = UserPhraseStore.get(this@AiSettingsActivity)
+                VocabHub.runIo {
+                    store.load()
+                    val client = VocabHub.get(this@AiSettingsActivity)
+                    val words = AppVoiceTerms.proposable(store.phrases(), store.words())
+                    words.forEach { client.enqueuePropose(it, emptyList(), "other", "correction") }
+                    main.post { toast("已排入 ${words.size} 個詞，到候選頁確認（聯絡人不會送出）") }
+                }
+                sync()
+            }
+        })
+        box.addView(buttons)
+        return wrap(box)
     }
 
     // =====================================================================

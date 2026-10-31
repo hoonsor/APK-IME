@@ -54,4 +54,7 @@ interface UserDictionary {
 interface VoiceTermProvider {
     /** 回傳要提供給語音的詞，依重要性排序（常用優先），最多 limit 筆。 */
     suspend fun voiceTerms(limit: Int): List<String>
+
+    /** 辨識後的確定性修正（語音個人詞庫中心，逐詞開啟）；沒有實作就回傳原文。 */
+    fun correctTranscript(text: String): String = text
 }

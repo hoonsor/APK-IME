@@ -173,6 +173,7 @@ internal class DefaultVoiceInputController(
             var raw = stt.trim()
             if (raw.isEmpty() || Hallucination.isHallucination(raw)) return fail(s, VoiceErrorCode.EMPTY_AUDIO, "沒有辨識到內容")
             if (!english) raw = s2t()?.convert(raw) ?: raw
+            raw = runner.correctTranscript(raw)
             main.post { if (session == s) set(VoiceState.Polishing) }
 
             val hints = target?.hints
