@@ -78,6 +78,9 @@ class SettingsActivity : Activity() {
         switch("顯示聯想字詞", { prefs.associations }) { prefs.associations = it }
         switch("工具列顯示剪貼簿按鈕", { prefs.toolbarClipboard }) { prefs.toolbarClipboard = it }
         switch("扇子顯示剪貼簿項目", { prefs.fanClipboard }) { prefs.fanClipboard = it }
+        button("自訂四符號鍵（空白鍵與兩側按鍵）") {
+            startActivity(Intent(this, PunctKeysActivity::class.java))
+        }
         button("鍵盤高度恢復預設") {
             prefs.panelHeightDp = Prefs.DEFAULT_HEIGHT_DP
             Toast.makeText(this, "下次開啟鍵盤時生效", Toast.LENGTH_SHORT).show()

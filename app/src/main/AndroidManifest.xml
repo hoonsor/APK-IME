@@ -49,6 +49,14 @@
             android:theme="@android:style/Theme.Material.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- 四符號鍵自訂 -->
+        <activity
+            android:name=".settings.PunctKeysActivity"
+            android:exported="false"
+            android:label="自訂四符號鍵"
+            android:theme="@android:style/Theme.Material.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- AI 模型設定（API key、各用途模型、語音選項） -->
         <activity
             android:name=".ai.AiSettingsActivity"

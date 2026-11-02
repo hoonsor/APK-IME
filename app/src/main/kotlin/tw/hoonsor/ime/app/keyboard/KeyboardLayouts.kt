@@ -22,6 +22,7 @@ sealed interface KeyAction {
     /**
      * 四符號手勢鍵（K2a）：點一下 = 左下（粉紅色）；按住往 ↖ ↗ ↘ ↙ 滑放開 = 該角的符號。
      * 鍵面四角顯示對應符號；可以是多個字（例如 .com）。
+     * 左下是空白字元時就是空白鍵：點一下照常送空白（注音組字中是一聲）。
      */
     data class Punct(
         val downLeft: String,
@@ -29,10 +30,16 @@ sealed interface KeyAction {
         val upRight: String,
         val downRight: String,
     ) : KeyAction {
+        val isSpace get() = downLeft == SPACE
+
         /** 依手指位移決定送出哪個角的符號；位移很小視為點一下。 */
         fun pick(dx: Float, dy: Float, tapSlop: Float): String {
             if (kotlin.math.abs(dx) < tapSlop && kotlin.math.abs(dy) < tapSlop) return downLeft
             return if (dy < 0) (if (dx < 0) upLeft else upRight) else (if (dx < 0) downLeft else downRight)
+        }
+
+        companion object {
+            const val SPACE = " "
         }
     }
 
@@ -66,37 +73,29 @@ enum class FanItem(val glyph: String, val title: String) {
 
 object KeyboardLayouts {
 
-    // 四符號手勢鍵（參數順序：左下＝點一下、左上、右上、右下）
-    /** 注音空白鍵左邊：點 = ，、↖？ ↗、 ↘！ */
-    val ZHUYIN_PUNCT_LEFT = KeyAction.Punct("，", "？", "、", "！")
-    /** 注音空白鍵右邊（倬，2026-10-25）：點 = 。、↖& ↗● ↘（ */
-    val ZHUYIN_PUNCT_RIGHT = KeyAction.Punct("。", "&", "●", "（")
-    /** 英文空白鍵左邊（倬，2026-10-25）：點 = @、↖, ↗- ↘_ */
-    val ENGLISH_PUNCT_LEFT = KeyAction.Punct("@", ",", "-", "_")
-    /** 英文空白鍵右邊（倬，2026-10-25）：點 = .com、↖. ↗~ ↘; */
-    val ENGLISH_PUNCT_RIGHT = KeyAction.Punct(".com", ".", "~", ";")
-
-    /** 大千式注音（倬的截圖）。 */
-    val ZHUYIN: List<List<KeyDef>> by lazy {
-        val rows = listOf(
+    /** 大千式注音（倬的截圖）的 4 排注音鍵。 */
+    private val ZHUYIN_ROWS: List<List<KeyDef>> by lazy {
+        listOf(
             "ㄅㄉˇˋㄓˊ˙ㄚㄞㄢ",
             "ㄆㄊㄍㄐㄔㄗㄧㄛㄟㄣ",
             "ㄇㄋㄎㄑㄕㄘㄨㄜㄠㄤ",
             "ㄈㄌㄏㄒㄖㄙㄩㄝㄡㄥ",
         ).map { row -> row.map { c -> KeyDef(c.toString(), KeyAction.Zhuyin(c)) } }
-        rows + listOf(
-            listOf(
-                KeyDef("ABC", KeyAction.ToEnglish, style = KeyStyle.DARK, textSizeSp = 15f),
-                KeyDef("", KeyAction.Fan, style = KeyStyle.DARK),
-                KeyDef("", ZHUYIN_PUNCT_LEFT),
-                KeyDef("", KeyAction.Space, weight = 1.7f),
-                KeyDef("", ZHUYIN_PUNCT_RIGHT),
-                KeyDef("ㄦ", KeyAction.Zhuyin('ㄦ')),
-                KeyDef("", KeyAction.Backspace, style = KeyStyle.DARK),
-                KeyDef("", KeyAction.Enter, style = KeyStyle.DARK),
-            ),
-        )
     }
+
+    /** 注音鍵盤；三顆四符號鍵的內容由設定決定（見 PunctSlot）。 */
+    fun zhuyin(punct: (PunctSlot) -> KeyAction.Punct = { it.default }): List<List<KeyDef>> = ZHUYIN_ROWS + listOf(
+        listOf(
+            KeyDef("ABC", KeyAction.ToEnglish, style = KeyStyle.DARK, textSizeSp = 15f),
+            KeyDef("", KeyAction.Fan, style = KeyStyle.DARK),
+            KeyDef("", punct(PunctSlot.ZHUYIN_LEFT)),
+            KeyDef("", punct(PunctSlot.ZHUYIN_SPACE), weight = 1.7f),
+            KeyDef("", punct(PunctSlot.ZHUYIN_RIGHT)),
+            KeyDef("ㄦ", KeyAction.Zhuyin('ㄦ')),
+            KeyDef("", KeyAction.Backspace, style = KeyStyle.DARK),
+            KeyDef("", KeyAction.Enter, style = KeyStyle.DARK),
+        ),
+    )
 
     /** 扇子顯示的項目（依序）。 */
     val FAN_ITEMS = listOf(FanItem.HALF, FanItem.FULL, FanItem.NUM, FanItem.CLIPBOARD)
@@ -124,7 +123,11 @@ object KeyboardLayouts {
     }
 
     /** 英文鍵盤；numberRow = K5「上排固定顯示數字」。 */
-    fun english(upper: Boolean, numberRow: Boolean): List<List<KeyDef>> {
+    fun english(
+        upper: Boolean,
+        numberRow: Boolean,
+        punct: (PunctSlot) -> KeyAction.Punct = { it.default },
+    ): List<List<KeyDef>> {
         fun letters(s: String) = s.map { c ->
             val t = if (upper) c.uppercaseChar().toString() else c.toString()
             KeyDef(t, KeyAction.Commit(t))
@@ -140,9 +143,9 @@ object KeyboardLayouts {
             KeyDef("注", KeyAction.ToZhuyin, weight = 1.2f, style = KeyStyle.DARK, textSizeSp = 18f),
             KeyDef("", KeyAction.Fan, style = KeyStyle.DARK),
             // 空白鍵縮窄，讓兩側四符號鍵寬一點（右鍵有「.com」）
-            KeyDef("", ENGLISH_PUNCT_LEFT, weight = 1.4f),
-            KeyDef("", KeyAction.Space, weight = 2.8f),
-            KeyDef("", ENGLISH_PUNCT_RIGHT, weight = 1.6f),
+            KeyDef("", punct(PunctSlot.ENGLISH_LEFT), weight = 1.4f),
+            KeyDef("", punct(PunctSlot.ENGLISH_SPACE), weight = 2.8f),
+            KeyDef("", punct(PunctSlot.ENGLISH_RIGHT), weight = 1.6f),
             KeyDef("", KeyAction.Enter, weight = 1.5f, style = KeyStyle.DARK),
         )
         return rows

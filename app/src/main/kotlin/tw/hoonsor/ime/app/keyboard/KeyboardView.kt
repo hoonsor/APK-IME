@@ -54,6 +54,7 @@ class KeyboardView(context: Context) : View(context) {
     private val labelPaint = textPaint(Palette.TEXT, dp(22f))
     private val smallPaint = textPaint(Palette.TEXT, dp(13f), bold = true)
     private val pinkPaint = textPaint(Palette.PINK, dp(13f), bold = true)
+    private val pinkStroke = strokePaint(Palette.PINK, dp(2f))
     private val iconStroke = strokePaint(Palette.TEXT, dp(2.4f))
     private val iconFill = fillPaint(Palette.TEXT)
     private val fanPaint = fillPaint(Palette.ICON)
@@ -125,10 +126,22 @@ class KeyboardView(context: Context) : View(context) {
             is KeyAction.Punct -> {
                 val a = k.action
                 val dy = r.height() * 0.17f
-                drawCorner(c, a.upLeft, r, cy - dy, left = true, smallPaint)
-                drawCorner(c, a.upRight, r, cy - dy, left = false, smallPaint)
-                drawCorner(c, a.downLeft, r, cy + dy, left = true, pinkPaint)
-                drawCorner(c, a.downRight, r, cy + dy, left = false, smallPaint)
+                // 空白鍵比較寬，符號往四角分開一點，左下畫小空白圖示
+                val spread = if (a.isSpace) 0.32f else 0.18f
+                drawCorner(c, a.upLeft, r, cy - dy, left = true, smallPaint, spread)
+                drawCorner(c, a.upRight, r, cy - dy, left = false, smallPaint, spread)
+                drawCorner(c, a.downRight, r, cy + dy, left = false, smallPaint, spread)
+                if (a.isSpace) {
+                    val x = cx - r.width() * spread
+                    val w = dp(9f)
+                    val p = Path().apply {
+                        moveTo(x - w, cy + dy - dp(2f)); lineTo(x - w, cy + dy + dp(3f))
+                        lineTo(x + w, cy + dy + dp(3f)); lineTo(x + w, cy + dy - dp(2f))
+                    }
+                    c.drawPath(p, pinkStroke)
+                } else {
+                    drawCorner(c, a.downLeft, r, cy + dy, left = true, pinkPaint, spread)
+                }
             }
             KeyAction.Space -> {
                 val w = dp(18f)
@@ -170,17 +183,17 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     /**
-     * 四符號鍵的一個角：一般符號放在距中心 18% 鍵寬處；
+     * 四符號鍵的一個角：一般符號放在距中心 spread（比例）鍵寬處；
      * 較寬的文字（例如 .com）往內收到不超出鍵緣，仍放不下就縮小字級，避免和另一側重疊。
      */
-    private fun drawCorner(c: Canvas, text: String, r: RectF, y: Float, left: Boolean, p: android.graphics.Paint) {
+    private fun drawCorner(c: Canvas, text: String, r: RectF, y: Float, left: Boolean, p: android.graphics.Paint, spread: Float) {
         val base = p.textSize
         val pad = dp(3f)
         val half = r.width() / 2f - pad * 1.5f
         val w0 = p.measureText(text)
         if (w0 > half) p.textSize = base * half / w0
         val hw = p.measureText(text) / 2f
-        val dx = r.width() * 0.18f
+        val dx = r.width() * spread
         val x = if (left) maxOf(r.centerX() - dx, r.left + pad + hw) else minOf(r.centerX() + dx, r.right - pad - hw)
         c.drawText(text, x, y + p.centerOffset(), p)
         p.textSize = base
@@ -277,7 +290,8 @@ class KeyboardView(context: Context) : View(context) {
         when (k.action) {
             KeyAction.Backspace -> {} // 已在按下時送出
             KeyAction.Fan -> listener?.onFanEnd(x, y, fanDragged)
-            is KeyAction.Punct -> listener?.onPunct(k.action.pick(x - downX, y - downY, dp(12f)))
+            // 空白鍵打字時手指容易滑動，要滑遠一點才算手勢，避免誤送符號
+            is KeyAction.Punct -> listener?.onPunct(k.action.pick(x - downX, y - downY, dp(if (k.action.isSpace) 24f else 12f)))
             else -> listener?.onKey(k)
         }
         invalidate()

@@ -1,6 +1,8 @@
 package tw.hoonsor.ime.app.settings
 
 import android.content.Context
+import tw.hoonsor.ime.app.keyboard.KeyAction
+import tw.hoonsor.ime.app.keyboard.PunctSlot
 
 /** 輸入法設定（SharedPreferences）。IME 與設定頁在同一個 process，共用同一份。 */
 class Prefs(context: Context) {
@@ -55,6 +57,14 @@ class Prefs(context: Context) {
     var clipChip: Boolean
         get() = sp.getBoolean("clipChip", true)
         set(v) = sp.edit().putBoolean("clipChip", v).apply()
+
+    /** 四符號鍵的內容（未自訂的角用預設值）。 */
+    fun punct(slot: PunctSlot): KeyAction.Punct = slot.decode(sp.getString("punct_${slot.name}", null))
+
+    fun setPunct(slot: PunctSlot, value: KeyAction.Punct) =
+        sp.edit().putString("punct_${slot.name}", slot.encode(value)).apply()
+
+    fun resetPunct(slot: PunctSlot) = sp.edit().remove("punct_${slot.name}").apply()
 
     companion object {
         // 倬實測：舊預設 290 按「較低」6 次（-60）最合適

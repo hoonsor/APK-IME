@@ -445,8 +445,8 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         if (!viewReady) return
         keyboard.shiftState = shiftState
         keyboard.setRows(when (layout) {
-            Layout.ZHUYIN -> KeyboardLayouts.ZHUYIN
-            Layout.ENGLISH -> KeyboardLayouts.english(shiftState > 0, prefs.numberRow)
+            Layout.ZHUYIN -> KeyboardLayouts.zhuyin(prefs::punct)
+            Layout.ENGLISH -> KeyboardLayouts.english(shiftState > 0, prefs.numberRow, prefs::punct)
             Layout.SYMBOL -> {
                 val back = if (returnLayout == Layout.ENGLISH) "ABC" else "ㄅㄆㄇ"
                 if (symbolSet == FanItem.NUM) KeyboardLayouts.dialer(back) else KeyboardLayouts.symbols(symbolSet, pinned, back, symbolPage)
@@ -748,8 +748,9 @@ class ImeController(private val service: InputMethodService) : KeyboardView.List
         if (wordBuf.length > 64) wordBuf.setLength(0)
     }
 
-    /** 四符號手勢鍵：與一般符號鍵相同處理（成對符號、英文詞累積、大寫一次性解除）。 */
-    override fun onPunct(text: String) = onKey(KeyDef(text, KeyAction.Commit(text)))
+    /** 四符號手勢鍵：與一般符號鍵相同處理（成對符號、英文詞累積、大寫一次性解除）；空白鍵點一下走空白流程（一聲）。 */
+    override fun onPunct(text: String) =
+        onKey(KeyDef(text, if (text == KeyAction.Punct.SPACE) KeyAction.Space else KeyAction.Commit(text)))
 
     override fun onFanStart(cx: Float, cy: Float) {
         panels.showOverlay(Overlay.FAN)
