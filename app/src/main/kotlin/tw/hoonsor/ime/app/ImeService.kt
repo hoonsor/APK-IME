@@ -30,6 +30,10 @@ class ImeService : InputMethodService() {
         super.onCreate()
         controller = ImeController(this)
         controller.loadAsync()
+        // 每日自動備份的主要進入點：輸入法常駐，程序每次被系統拉起都會經過這裡（沒有 Application 類別）。
+        // 放背景執行緒、吞掉所有錯誤：排程失敗不能影響打字。已排好就不會重排。
+        Thread({ try { tw.hoonsor.backup.AutoBackup.ensureScheduled(applicationContext) } catch (t: Throwable) { Log.w(TAG, "auto-backup schedule failed", t) } },
+            "auto-backup-schedule").start()
     }
 
     override fun onCreateInputView(): View = controller.createView()

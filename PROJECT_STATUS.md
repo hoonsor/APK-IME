@@ -1,6 +1,6 @@
 # 倬注音（APK-IME）— 專案狀態
 
-> 目前版本：v0.8.0 ｜ 最後更新：2026/11/02
+> 目前版本：v0.9.0 ｜ 最後更新：2026/11/10
 > 專案規則與架構見 `AGENTS.md`；每日開發細節見 `docs/STATUS_ZHUYIN.md`。
 
 ## 📌 專案概述
@@ -28,10 +28,13 @@
 - [x] 空白鍵改為四符號鍵、設定頁可自訂六顆四符號鍵（2026/11/02）
 - [ ] Hoonsor Agent API v1 實作（目前只有規劃，見 `docs/AGENT_API.md`）
 - [x] 共用簽章、GitHub Actions 自動編譯（tag → Release、main → latest）、App 內更新（2026/10/18）
-- [ ] 流程標準補齊：備份 zip、健康檢查頁、LAB 版
+- [x] 每日自動備份 zip 到 Documents/HoonsorBackup/ZhuyinIME/（共用模組 android-auto-backup）＋從備份檔還原（2026/11/10）
+- [ ] 流程標準補齊：健康檢查頁、LAB 版
 - [ ] 聯絡人匯入（FEATURES D3；權限已宣告、功能未實作）
 
 ## 🧪 待實機驗證
+- [ ] 每日自動備份（v0.9.0）：設定頁「立即備份」後 `Documents/HoonsorBackup/ZhuyinIME/` 出現 `ZhuyinIME-日期-時間.zip`；Dropsync 有同步到 Dropbox；隔天沒開設定頁也有自動備份（ColorOS 可能延後）；超過 7 份會刪最舊的；內容沒變不另存
+- [ ] 從自動備份檔還原（v0.9.0）：選 zip → 確認對話框筆數正確 → 字典、鍵盤設定、AI 模型設定都回來；API key 與剪貼簿不受影響；「復原上次匯入前的字典」能反悔
 - [ ] 錄音與真實 API 呼叫；靜音門檻 `SILENCE_RMS = 0.008` 校正（Logcat tag `VoiceController` 會印 peakRms／voicedFrames，不含文字）
 - [ ] MiniMax-M3 延遲（文字 AI）；語音潤飾改用 Groq 後的速度
 - [ ] 符號翻頁、半形第一頁順序、成對符號
@@ -62,6 +65,7 @@
 
 | 版本 | 日期 | Commit | 變更內容 | 為什麼 |
 |---|---|---|---|---|
+| v0.9.0 | 2026/11/10 | （本筆提交） | feat(backup): 每日自動備份：每天把字典（user_dict.tsv）、鍵盤設定、AI 模型設定打包成 zip 存到 `Documents/HoonsorBackup/ZhuyinIME/`（Dropsync 同步到 Dropbox），內容沒變不另存、只留 7 份；設定頁新增開關、狀態、「立即備份」與「從自動備份檔還原」（還原前自動保留目前字典，可復原）。不含 API key 與剪貼簿 | 倬要所有 APP 每天自動備份到 Dropbox，換機或誤刪都救得回來 |
 | v0.8.0 | 2026/11/02 | （本筆提交） | feat(keyboard): 注音與英文空白鍵改為四符號鍵（點一下仍是空白／一聲；注音 ↖： ↗； ↘「、英文 ↖? ↗! ↘:）；設定頁新增「自訂四符號鍵」，六顆鍵都能改內容（空白鍵左下除外）、留空用預設、可恢復預設 | 倬要更多符號一滑就到，並能自己決定放什麼 |
 | v0.7.1 | 2026/10/25 | （本筆提交） | feat(keyboard): 注音空白鍵右邊「。」改為四符號鍵（點。↖& ↗● ↘（）；英文空白鍵左右改為四符號鍵（點@ ↖, ↗- ↘_／點.com ↖. ↗~ ↘;），空白鍵縮窄；`.com` 也會累積進英文詞 | 倬要常用的 & ● （ 與 email 符號一鍵就到 |
 | v0.7.0 | 2026/10/18 | （本筆提交） | feat: 免接線更新：GitHub Actions 用共用簽章編譯發布 Release（main 另發 latest 測試版）；設定頁「App 更新」可檢查、下載並用系統安裝新版，每天第一次開設定頁自動檢查。fix(voice): 幻聽過濾加強（黏在一起的重複套話、整段都是套話的子句） | 倬要手機不接線就能更新；debug 版每次簽章不同，無法覆蓋安裝 |
@@ -85,7 +89,7 @@
 3. 健康檢查頁：輸入法啟用與選用、麥克風權限、各用途 API key 是否設定、詞庫載入。
 4. 推 `v0.7.0` tag 發布第一個正式簽章版；倬依 README「第一次切換到正式簽章版」換裝（先匯出字典）。之後評估 LAB 版。
 5. 清掉未使用的 Compose／AndroidX／Room 依賴（需實機驗證）。
-6. 備份改為 zip（backup.json＋字典 CSV＋AI 設定，不含 key）；開啟 Android 系統自動備份規則（目前 `allowBackup=false`，原因待倬確認是否要開）。
+6. 倬實機驗證 v0.9.0 自動備份與還原後，推 `v0.9.0` tag 發版。`allowBackup=false` 維持不變（自動備份已改走 Documents＋Dropsync；是否另開 Android 系統備份待倬決定）。
 7. 視需要：emoji 符號頁、聯絡人匯入（D3）、語音歷史（V9）。
 
 ## 🤝 交接紀錄
@@ -97,5 +101,6 @@
 | 2026/10/12 | 未記錄（雲端對話） | 半形第一頁重排、字典匯出／分享／匯入；用裝置橋接把 v0.6.0 寫進倬電腦的專案資料夾（`zhuyin-voice-ime`） | 字典用 CSV（倬要用 Excel 編輯）；自寫 ExportProvider（不依賴 AndroidX） | AndroidX FileProvider；叫倬在本機 Pull（本機分支無 upstream，試多次失敗） | 實機驗證匯出入 | 倬實機測試 | 本機資料夾不是 GitHub 的乾淨 clone |
 | 2026/10/13 | A（家裡；依 Project 名稱推測，待倬確認） | 補齊交接文件（AGENTS.md 等） | 以 AGENTS.md 為唯一規則來源，舊文件標「已併入」保留 | — | Agent API 實作、流程標準補齊 | 見「下一步」 | — |
 | 2026/11/02 | 未確認 | 空白鍵四符號化、`PunctSlot`＋`PunctKeysActivity` 自訂介面、PunctKeyTest 增至 9 項 | 空白鍵左下鎖定（一聲不能被改掉）；空白鍵手勢門檻 24dp 防誤觸；欄位留空＝預設；空白鍵預設符號由 AI 暫定，倬可自改 | 把自訂內容寫死在版面（倬要自訂）；讓空白鍵點一下也可改（會打不出一聲） | 實機驗證、推 v0.8.0 tag | 倬實機回饋 | 寫暫存腳本放 session scratchpad，不要用共用的 `$TMPDIR`（曾誤跑別專案留下的同名檔，未造成損害）；Git 工作副本可能是 CRLF，多行取代要處理換行 |
+| 2026/11/10 | A（家裡；由 42 號對話派工的子代理，在 worktree `D:/dev/zhuyin-voice-ime-backup`、分支 `feat/auto-backup`） | 套用共用模組 android-auto-backup：`tw/hoonsor/backup/` 兩個 Java 檔、`settings/ImeBackup.kt`（zip 匯出入＋`ZhuyinBackupSource`）、`UserPhraseStore.replaceAllFromTsv`、設定頁自動備份區塊、ImeBackupTest／AutoBackupTest | zip 內容：manifest.json、user_dict.tsv（原格式）、prefs/ime.json、prefs/ai_config.json（帶型別 JSON，照語音總控 SettingsBackup）；偏好用白名單，名稱像金鑰的鍵一律排除（ai_config 目前沒有金鑰，key 都在 secrets）；zip 項目用固定時間，內容沒變位元組相同才能去重；排程進入點選 `ImeService.onCreate`（輸入法常駐，背景執行緒、錯誤吞掉）＋設定頁 onCreate；資料夾名 `ZhuyinIME`（沒有 lab flavor） | 備份 clip_history（可能有密碼）、secrets（Keystore 換機解不開）、app_update（無意義）；新增 Application 類別（ImeService 已足夠，少一個改動點）；還原用「合併」（自動備份還原應以備份為準） | 實機驗證、未 push、未發版 | 倬實機驗證後合併 main、推 v0.9.0 tag | 命令列建置 `JAVA_HOME=C:/Users/hoonsor/.jdks/jbr-21.0.11`；worktree 要自己複製 `local.properties`（不進 Git） |
 | 2026/10/25 | 未確認（電腦名稱 DESKTOP-5DM4EDT） | 四符號鍵（注音右鍵、英文左右鍵）、`Punct` 改為帶四角符號的 data class、新增 PunctKeyTest | 四符號鍵沿用一般符號鍵流程（成對符號、英文詞累積、大寫一次性解除）；寬文字（.com）自動內縮或縮小字級 | — | 實機驗證、推 v0.7.1 tag | 倬實機回饋 | Android Studio 內建 JBR 是 Java 25（Gradle 8.9 不能用），命令列建置要設 `JAVA_HOME=C:/Users/hoonsor/.jdks/jbr-21.0.11` |
 | 2026/10/18 | A（家裡） | 幻聽過濾提交、共用簽章、GitHub Actions、App 內更新（框架元件版，移植自鬧鐘 APP） | 更新 UI 用 AlertDialog＋執行緒（專案不用 AndroidX／coroutines）；只在設定頁檢查，鍵盤不連網 | — | 推 tag、實機驗證換簽章 | 見「下一步」 | 本機建置用 `C:/Users/hoonsor/.jdks/jbr-21.0.11` |

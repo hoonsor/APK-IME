@@ -14,6 +14,7 @@ import android.widget.ScrollView
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
+import tw.hoonsor.backup.AutoBackup
 import tw.hoonsor.ime.app.UserPhraseStore
 import tw.hoonsor.ime.app.ui.dpi
 import tw.hoonsor.ime.app.update.CheckResult
@@ -23,7 +24,7 @@ import tw.hoonsor.ime.app.update.UpdateDialog
 import tw.hoonsor.ime.app.update.UpdateInstaller
 
 /**
- * 設定頁（參數設定）：啟用輸入法、測試、偏好開關、詞庫備份／還原（D4）、App 更新。
+ * 設定頁（參數設定）：啟用輸入法、測試、偏好開關、詞庫備份／還原（D4）、每日自動備份、App 更新。
  * 只用 Android 框架元件，不依賴 AndroidX。
  */
 class SettingsActivity : Activity() {
@@ -122,6 +123,35 @@ class SettingsActivity : Activity() {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
         })
 
+        // 每日自動備份（hoonsor-kit android-auto-backup）
+        col.addView(TextView(this).apply {
+            text = "每日自動備份"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setPadding(0, dpi(14f), 0, dpi(2f))
+        })
+        switch("每天自動備份字典與設定", { AutoBackup.isEnabled(this) }) {
+            AutoBackup.setEnabled(this, it)
+            refreshBackupStatus()
+        }
+        col.addView(backupStatus.apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f) })
+        button("立即備份") { backupNow() }
+        button("從自動備份檔還原…") {
+            startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "*/*"
+                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
+            }, REQ_RESTORE)
+        }
+        col.addView(TextView(this).apply {
+            text = "每天把字典（自建詞、英文詞、常用短語、學習紀錄）、鍵盤設定與 AI 模型設定存成一個 zip 到手機的 " +
+                "${AutoBackup.folder(ZhuyinBackupSource())}，再用 Dropsync 把 Documents/HoonsorBackup 同步到 Dropbox。\n" +
+                "・內容沒變就不另存，只留最近 ${AutoBackup.KEEP} 份。\n" +
+                "・不含 API key（換機要重新貼上）與剪貼簿紀錄（可能有密碼等敏感內容）。\n" +
+                "・還原會整份取代目前的字典與設定；還原前會自動保留目前的字典，可用「復原上次匯入前的字典」反悔。\n" +
+                "・手機可能延後背景工作，晚幾小時屬正常；需要時按「立即備份」。"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        })
+
         title("5. 剪貼簿")
         switch("記錄剪貼簿歷史", { prefs.clipCapture }) { prefs.clipCapture = it }
         switch("剛複製的內容在候選列顯示「一點即貼」", { prefs.clipChip }) { prefs.clipChip = it }
@@ -174,6 +204,69 @@ class SettingsActivity : Activity() {
         }
         setContentView(scroll)
         autoCheckUpdate()
+        // 第二個進入點（第一個是 ImeService.onCreate）：剛安裝、還沒切到這個輸入法時，打開設定頁也會排好每日備份
+        runCatching { AutoBackup.ensureScheduled(this) }
+        refreshBackupStatus()
+    }
+
+    // =====================================================================
+    // 每日自動備份（AutoBackup＋ImeBackup）
+    // =====================================================================
+
+    private val backupStatus by lazy { TextView(this) }
+
+    private fun refreshBackupStatus() {
+        backupStatus.text = runCatching { AutoBackup.statusText(this) }.getOrElse { "無法讀取備份狀態" }
+    }
+
+    private fun backupNow() {
+        backupStatus.text = "備份中…"
+        AutoBackup.runNowAsync(this) { err ->
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                refreshBackupStatus()
+                toast(err?.let { "備份失敗：$it" } ?: "已備份到 ${AutoBackup.folder(ZhuyinBackupSource())}")
+            }
+        }
+    }
+
+    /** 讀備份 zip（背景）→ 確認對話框 → 還原字典與設定 */
+    private fun readRestore(uri: android.net.Uri) {
+        io.execute {
+            try {
+                val b = contentResolver.openInputStream(uri)?.use { ImeBackup.readZip(it) }
+                    ?: throw IllegalStateException("無法讀取檔案")
+                main.post { confirmRestore(b) }
+            } catch (e: Exception) {
+                main.post { toast("無法還原：${e.message}") }
+            }
+        }
+    }
+
+    private fun confirmRestore(b: ImeBackup.Contents) {
+        if (isFinishing || isDestroyed) return
+        val msg = buildString {
+            if (b.dict != null) append("字典 ${b.dictLines} 筆（自建詞、英文詞、常用短語、學習紀錄）\n")
+            b.prefs["ime"]?.let { append("鍵盤設定 ${it.size} 項\n") }
+            b.prefs["ai_config"]?.let { append("AI 模型設定 ${it.size} 項\n") }
+            if (b.appVersion.isNotEmpty()) append("（備份時的版本 v${b.appVersion}）\n")
+            append("\n目前的字典與設定會整份換成備份檔的內容；API key 與剪貼簿紀錄不受影響。\n")
+            append("還原前會自動保留目前的字典，可用「復原上次匯入前的字典」反悔。")
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("用備份檔取代目前的字典與設定？")
+            .setMessage(msg)
+            .setPositiveButton("還原") { _, _ ->
+                io.execute {
+                    val result = try { ImeBackup.restore(this, b) + "，鍵盤下次開啟時生效" } catch (e: Exception) { "還原失敗：${e.message}" }
+                    main.post {
+                        Toast.makeText(this, result, Toast.LENGTH_LONG).show()
+                        if (!isFinishing && !isDestroyed) recreate() // 開關重新讀設定，避免畫面顯示舊值
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     // =====================================================================
@@ -185,6 +278,7 @@ class SettingsActivity : Activity() {
     override fun onResume() {
         super.onResume()
         updateDialog?.onResume()
+        refreshBackupStatus()
     }
 
     /** 每天最多一次，在背景查 GitHub；有新版才跳對話框，錯誤一律安靜略過 */
@@ -238,6 +332,7 @@ class SettingsActivity : Activity() {
                 main.post { toast(msg) }
             }
             REQ_IMPORT -> readImport(uri)
+            REQ_RESTORE -> readRestore(uri)
         }
     }
 
@@ -383,5 +478,6 @@ class SettingsActivity : Activity() {
     companion object {
         private const val REQ_EXPORT = 1
         private const val REQ_IMPORT = 2
+        private const val REQ_RESTORE = 3
     }
 }

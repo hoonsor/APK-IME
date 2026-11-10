@@ -228,6 +228,24 @@ class UserPhraseStore private constructor(context: Context) {
         return true
     }
 
+    /**
+     * 從自動備份檔（ImeBackup）還原：整份取代成備份裡的 user_dict.tsv。
+     * 取代前和 CSV 匯入一樣先存 user_dict.before-import.tsv，可用 [restoreImportBackup] 復原。
+     * 呼叫前要先 [load]（否則 saveNow 不會寫檔）。回傳還原的資料列數。
+     */
+    fun replaceAllFromTsv(text: String): Int {
+        val backup = snapshot()
+        try { beforeImport.writeText(backup) } catch (e: Exception) { Log.w(TAG, "backup failed", e) }
+        var n = 0
+        synchronized(this) {
+            phrases.clear(); words.clear(); quick.clear(); usage.clear()
+            text.lineSequence().forEach { if (it.length > 2 && it[1] == '\t' && it[0] in "PEQU") { parseLine(it); n++ } }
+        }
+        changed(true)
+        saveNow()
+        return n
+    }
+
     fun exportTo(out: OutputStream) {
         out.write(snapshot().toByteArray(Charsets.UTF_8))
     }
